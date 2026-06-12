@@ -49,7 +49,7 @@ const LoginPage = () => {
             <Card className="border-0 shadow-lg p-3 rounded-4">
               <Card.Body>
                 <h4 className="fw-bold text-dark mb-4 text-center">Sign In</h4>
-                <Form autoComplete="false" onSubmit={handleSubmit} noValidate>
+                <Form autoComplete="off " onSubmit={handleSubmit} noValidate>
                   <Form.Group className="mb-3">
                     <Form.Label>Email</Form.Label>
                     <div className="input-group">
