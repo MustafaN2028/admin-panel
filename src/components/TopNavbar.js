@@ -1,7 +1,8 @@
 "use client";
-import { Navbar, Nav, Dropdown, Container } from "react-bootstrap";
+import { memo } from "react";
+import { Navbar, Nav, Dropdown, Container, Button } from "react-bootstrap";
 import { List } from "react-bootstrap-icons";
-export default function TopNavbar() {
+function TopNavbar({ onToggleSidebar, isSidebarOpen }) {
   return (
     <Navbar
       bg="white"
@@ -9,8 +10,19 @@ export default function TopNavbar() {
       style={{ zIndex: 1020 }}
     >
       <div className="d-flex align-items-center gap-2">
-        <List size={18} />
+        <Button
+          variant="light"
+          onClick={onToggleSidebar}
+          className="border shadow-sm p-2 d-flex align-items-center justify-content-center rounded-2"
+          style={{ width: "38px", height: "38px" }}
+          title={
+            isSidebarOpen ? "Hide Navigation Menu" : "Show Navigation Menu"
+          }
+        >
+          <List size={20} />
+        </Button>
       </div>
     </Navbar>
   );
 }
+export default memo(TopNavbar);
