@@ -11,7 +11,7 @@ import {
 
 function Sidebar({ isOpen, onNavigate }) {
   return (
-    <div className="bg-dark min-vh-100">
+    <div className="bg-dark h-100">
       <div className="d-flex align-items-center gap-2 mb-4 py-3 px-2 border-bottom border-secondary">
         <ShieldLock size={22} className="text-primary" />
       </div>

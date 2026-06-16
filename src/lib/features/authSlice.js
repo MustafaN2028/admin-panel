@@ -57,10 +57,10 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     logout: (state) => {
+      if (typeof window !== "undefined") localStorage.removeItem("token");
       state.user = null;
       state.isAuthenticated = checkInitialAuth();
       state.error = null;
-      if (typeof window !== "undefined") localStorage.removeItem("token");
     },
     clearError: (state) => {
       state.error = null;

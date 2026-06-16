@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }) {
   const { isAuthenticated } = useSelector((state) => state.auth);
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  
+
   // Desktop-only state tracking
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -58,7 +58,7 @@ export default function DashboardLayout({ children }) {
           transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           overflow: "hidden",
         }}
-        className="bg-white border-end d-none d-md-block h-100"
+        className="bg-white border-end d-none d-md-block min-vh-100"
       >
         <Sidebar isOpen={sidebarOpen} />
       </div>
