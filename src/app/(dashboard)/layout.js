@@ -1,17 +1,33 @@
 // src/app/(dashboard)/layout.js
 "use client";
 import { useState, useCallback, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import TopNavbar from "@/components/TopNavbar";
 
 export default function DashboardLayout({ children }) {
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  
   // Desktop-only state tracking
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
   }, []);
-  console.log(sidebarOpen);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, router, mounted]);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
@@ -25,6 +41,11 @@ export default function DashboardLayout({ children }) {
 
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Prevent flash of protected content while redirecting and avoid hydration mismatch
+  if (!mounted || !isAuthenticated) {
+    return null;
+  }
   return (
     <div className="d-flex min-vh-100 w-100 bg-light overflow-x-hidden position-relative">
       {/* DESKTOP SIDEBAR GRID PANEL:

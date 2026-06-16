@@ -1,19 +1,50 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
+import { useDispatch, useSelector } from "react-redux"; // 1. Import Redux communication hooks
+import { loginUser, clearError } from "@/lib/features/authSlice"; // Import slice actions
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Form,
+  Spinner,
+  Button,
+} from "react-bootstrap";
 import { Envelope, Lock, Telephone } from "react-bootstrap-icons";
 const LoginPage = () => {
+  const dispatch = useDispatch();
+  const router = useRouter();
+
+  // 2. Map structural state parameters straight out of your central store slice
+  const {
+    loading,
+    error: apiError,
+    isAuthenticated,
+  } = useSelector((state) => state.auth);
   const [mobileNumber, setMobileNumber] = useState("");
   const [password, setPassword] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [loading, setLoading] = useState(false);
   // Enforces: 8+ chars, 1 Uppercase, 1 Lowercase, 1 Number, 1 Special Char
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
   const mobileRegex = /^\+?[0-9]{10,15}$/;
+  // Clear any residual API errors from previous attempts when mounting
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+  // Redirect the user automatically if Redux confirms they are logged in
+  useEffect(() => {
+    console.log("Current Auth State Status:", isAuthenticated);
+    if (isAuthenticated) {
+      router.push("/");
+      router.refresh();
+    }
+  }, [isAuthenticated, router]);
+  console.log(isAuthenticated, "isssssssss");
   // Logic Handler for Mobile Inputs
   const handleMobileChange = (val) => {
     // Strip out spaces or dashes if the user types them formatted
@@ -42,6 +73,14 @@ const LoginPage = () => {
   };
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!mobileRegex.test(mobileNumber) || !passwordRegex.test(password)) {
+      handleMobileChange(mobileNumber);
+      handlePasswordChange(password);
+      return;
+    }
+
+    // 3. DISPATCH ACTION: Offload validation data parameters to our Thunk pipeline
+    dispatch(loginUser({ mobileNumber, password }));
   };
 
   return (
@@ -100,8 +139,21 @@ const LoginPage = () => {
                     variant="primary"
                     type="submit"
                     className="w-100 py-2 fw-semibold shadow-sm rounded-2"
+                    disabled={loading}
                   >
-                    Sign In
+                    {loading ? (
+                      <>
+                        <Spinner
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          aria-hidden="true"
+                        />
+                        <span>Verifying Account...</span>
+                      </>
+                    ) : (
+                      <span>Sign In</span>
+                    )}
                   </Button>
                 </Form>
               </Card.Body>

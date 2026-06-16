@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import StoreProvider from "./StoreProvider";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const geistSans = Geist({
@@ -18,8 +19,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
+      <body cz-shortcut-listen="true">
+        <StoreProvider>{children}</StoreProvider>
+      </body>
     </html>
   );
 }
