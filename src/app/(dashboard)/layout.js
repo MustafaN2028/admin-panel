@@ -23,7 +23,7 @@ export default function DashboardLayout({ children }) {
     handleResize();
     window.addEventListener("resize", handleResize);
 
-    return () => window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
   return (
     <div className="d-flex min-vh-100 w-100 bg-light overflow-x-hidden position-relative">

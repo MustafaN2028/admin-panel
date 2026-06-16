@@ -2,27 +2,30 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
-import { Envelope, Lock } from "react-bootstrap-icons";
+import { Envelope, Lock, Telephone } from "react-bootstrap-icons";
 const LoginPage = () => {
-  const [email, setEmail] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
+  const [mobileError, setMobileError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
-  // Production Grade Email Regex Pattern
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   // Enforces: 8+ chars, 1 Uppercase, 1 Lowercase, 1 Number, 1 Special Char
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-  const handleEmailChange = (val) => {
-    setEmail(val);
-    if (val.trim() === "") {
-      setEmailError("Email Cannot be Empty");
-    } else if (!emailRegex.test(val)) {
-      setEmailError("Please Enter Valid Email");
+  const mobileRegex = /^\+?[0-9]{10,15}$/;
+  // Logic Handler for Mobile Inputs
+  const handleMobileChange = (val) => {
+    // Strip out spaces or dashes if the user types them formatted
+    const cleanVal = val.replace(/[\s-]/g, "");
+    setMobileNumber(cleanVal);
+
+    if (cleanVal.trim() === "") {
+      setMobileError("Mobile Number Cannot be Empty");
+    } else if (!mobileRegex.test(cleanVal)) {
+      setMobileError("Please Enter a Valid Mobile Number (10-15 digits)");
     } else {
-      setEmailError("");
+      setMobileError("");
     }
   };
   const handlePasswordChange = (val) => {
@@ -51,22 +54,23 @@ const LoginPage = () => {
                 <h4 className="fw-bold text-dark mb-4 text-center">Sign In</h4>
                 <Form autoComplete="off " onSubmit={handleSubmit} noValidate>
                   <Form.Group className="mb-3">
-                    <Form.Label>Email</Form.Label>
+                    <Form.Label>Mobile Number</Form.Label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-end-0 text-muted">
-                        <Envelope size={16} />
+                        <Telephone size={16} />{" "}
+                        {/* Updated to Telephone Icon */}
                       </span>
                       <Form.Control
-                        type="email"
-                        placeholder="Enter Your Email"
+                        type="tel" // Updated input type to phone layout trigger
+                        placeholder="Enter Mobile Number"
                         className="bg-light border-start-0"
-                        value={email}
-                        onChange={(e) => handleEmailChange(e.target.value)}
+                        value={mobileNumber}
+                        onChange={(e) => handleMobileChange(e.target.value)}
                         required
                       />
-                      {emailError && (
+                      {mobileError && (
                         <span className="invalid-feedback d-block small fw-medium">
-                          {emailError}
+                          {mobileError}
                         </span>
                       )}
                     </div>
