@@ -96,7 +96,7 @@ export default function DashboardLayout({ children }) {
           isSidebarOpen={sidebarOpen}
         />
 
-        <main className="p-4 flex-grow-1">{children}</main>
+        <main className="p-2 flex-grow-1">{children}</main>
       </div>
 
       <style jsx global>{`
