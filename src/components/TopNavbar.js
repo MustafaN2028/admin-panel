@@ -1,10 +1,13 @@
 "use client";
 import { memo } from "react";
 import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { logout } from "@/lib/features/authSlice";
 import { Navbar, Nav, Dropdown, Container, Button } from "react-bootstrap";
 import { List, Power } from "react-bootstrap-icons";
 function TopNavbar({ onToggleSidebar, isSidebarOpen }) {
   const router = useRouter();
+  const dispatch = useDispatch();
   return (
     <Navbar
       bg="white"
@@ -28,7 +31,7 @@ function TopNavbar({ onToggleSidebar, isSidebarOpen }) {
           className="border shadow-sm p-2 d-flex align-items-center justify-content-center rounded-2 d-inline-block"
           style={{ width: "38px", height: "38px" }}
           onClick={() => {
-            localStorage.removeItem("token");
+            dispatch(logout());
             router.push("/login");
           }}
         >
