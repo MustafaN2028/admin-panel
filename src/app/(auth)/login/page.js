@@ -40,8 +40,8 @@ const LoginPage = () => {
   useEffect(() => {
     console.log("Current Auth State Status:", isAuthenticated);
     if (isAuthenticated) {
-      router.push("/");
-      router.refresh();
+      router.push("/dash");
+      // router.refresh();
     }
   }, [isAuthenticated, router]);
   console.log(isAuthenticated, "isssssssss");

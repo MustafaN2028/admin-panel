@@ -48,7 +48,7 @@ const Dash = () => {
           <Card className="shadow-sm">
             <Card.Body className="">
               <div className="d-flex align-items-center justify-content-between mb-3">
-                <div className="h3 mb-0">{usersList?.count}</div>
+                <div className="h3 mb-0">{usersList?.pagination?.total}</div>
                 <div className="bg-primary bg-opacity-10 p-2 rounded-circle text-primary">
                   <People size={24} />
                 </div>
@@ -66,7 +66,9 @@ const Dash = () => {
           <Card className="shadow-sm">
             <Card.Body>
               <div className="d-flex align-items-center justify-content-between mb-3">
-                <div className="h3 mb-0">{subscriptionsList?.count}</div>
+                <div className="h3 mb-0">
+                  {subscriptionsList?.pagination?.total}
+                </div>
                 <div className="bg-success bg-opacity-10 p-2 rounded-circle text-success">
                   <GraphUp size={24} />
                 </div>
