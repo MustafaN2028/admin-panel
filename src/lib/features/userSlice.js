@@ -31,7 +31,7 @@ export const fetchUsers = createAsyncThunk(
       }
 
       // Return your array of users (Adapt 'data.users' depending on your API payload structure)
-      return data.data || data;
+      return data || data;
     } catch (error) {
       const errorMessage =
         "Could not communicate with server database profile stacks.";

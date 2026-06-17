@@ -19,7 +19,7 @@ export default function UserDirectoryPage() {
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
-
+  console.log(usersList);
   // Clean tool to format dates beautifully (e.g., "May 26, 2026")
   const formatDate = (dateString) => {
     if (!dateString) return <span className="text-muted small">N/A</span>;
@@ -60,7 +60,7 @@ export default function UserDirectoryPage() {
             className={loading ? "spin-animation" : ""}
             size={14}
           />
-          <span>Refresh Users</span>
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -82,7 +82,7 @@ export default function UserDirectoryPage() {
                 Syncing user directory...
               </span>
             </div>
-          ) : usersList && usersList.length > 0 ? (
+          ) : usersList?.data && usersList?.data?.length > 0 ? (
             /* Data Grid Module Layout Wrapper */
             <div className="table-responsive">
               <Table hover className="align-middle mb-0 text-nowrap">
@@ -97,7 +97,7 @@ export default function UserDirectoryPage() {
                   </tr>
                 </thead>
                 <tbody className="text-dark small fw-medium">
-                  {usersList.map((user, index) => (
+                  {usersList?.data?.map((user, index) => (
                     <tr key={user._id || user.id || index}>
                       {/* 1. NAME FIELD */}
                       <td className="px-4">

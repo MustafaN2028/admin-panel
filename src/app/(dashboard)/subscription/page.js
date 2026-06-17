@@ -67,7 +67,7 @@ export default function SubscriptionPage() {
             className={loading ? "spin-animation" : ""}
             size={14}
           />
-          <span>Refresh Data</span>
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -89,7 +89,7 @@ export default function SubscriptionPage() {
                 Syncing plan records...
               </span>
             </div>
-          ) : subscriptionsList && subscriptionsList.length > 0 ? (
+          ) : subscriptionsList?.data && subscriptionsList?.data?.length > 0 ? (
             /* Interactive Data Grid Module Layout Wrapper */
             <div className="table-responsive">
               <Table hover className="align-middle mb-0 text-nowrap">
@@ -103,7 +103,7 @@ export default function SubscriptionPage() {
                   </tr>
                 </thead>
                 <tbody className="text-dark small fw-medium">
-                  {subscriptionsList.map((sub, index) => (
+                  {subscriptionsList?.data?.map((sub, index) => (
                     <tr key={sub._id || sub.id || index}>
                       {/* 1. PLAN FIELD */}
                       <td className="px-4">

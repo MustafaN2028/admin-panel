@@ -31,7 +31,7 @@ export const fetchSubscriptions = createAsyncThunk(
       }
 
       // Return your array of subscriptions (Adapt depending on your exact API response wrapper)
-      return data.data || data;
+      return data || data;
     } catch (error) {
       const errorMessage =
         "Could not communicate with subscription data streams.";

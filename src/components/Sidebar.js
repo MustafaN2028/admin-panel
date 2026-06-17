@@ -18,7 +18,7 @@ function Sidebar({ isOpen, onNavigate }) {
       <Nav className="flex-column gap-2 flex-grow-1">
         {/* Dashboard Link Layout */}
         <Link
-          href="/"
+          href="/dash"
           onClick={onNavigate} // Closes mobile panel naturally when link is clicked
           className={`text-white p-2 d-flex align-items-center gap-3 rounded-2 text-decoration-none ${
             isOpen
