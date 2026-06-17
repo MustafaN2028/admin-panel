@@ -1,8 +1,17 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchUsers } from "@/lib/features/userSlice";
-import { Table, Spinner, Card, Alert, Button } from "react-bootstrap";
+import { fetchUsers, deleteUser } from "@/lib/features/userSlice";
+import {
+  Table,
+  Spinner,
+  Card,
+  Alert,
+  Button,
+  Modal,
+  Pagination,
+} from "react-bootstrap";
+import { useRouter } from "next/navigation";
 import {
   People,
   ArrowClockwise,
@@ -12,13 +21,17 @@ import {
 
 export default function UserDirectoryPage() {
   const dispatch = useDispatch();
-
+  const router = useRouter();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [smShow, setSmShow] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   // Extract variables out of your user Redux store slice
   const { usersList, loading, error } = useSelector((state) => state.users);
-
+  const pagination = usersList?.pagination;
+  console.log(pagination, currentPage);
   useEffect(() => {
-    dispatch(fetchUsers());
-  }, [dispatch]);
+    dispatch(fetchUsers(currentPage));
+  }, [dispatch, currentPage]);
   console.log(usersList);
   // Clean tool to format dates beautifully (e.g., "May 26, 2026")
   const formatDate = (dateString) => {
@@ -53,7 +66,7 @@ export default function UserDirectoryPage() {
 
         <button
           className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 rounded-2"
-          onClick={() => dispatch(fetchUsers())}
+          onClick={() => dispatch(fetchUsers(currentPage))}
           disabled={loading}
         >
           <ArrowClockwise
@@ -139,18 +152,20 @@ export default function UserDirectoryPage() {
                           <button
                             className="btn btn-sm btn-light text-primary border rounded-2 d-flex align-items-center p-2"
                             title="View User Details"
-                            onClick={() =>
-                              console.log("Viewing User ID:", user.id)
-                            }
+                            onClick={() => {
+                              // console.log("Viewing User ID:", user.id);
+                              router.push(`/user/edit/${user.id}`);
+                            }}
                           >
                             <PencilSquare size={14} />
                           </button>
                           <button
                             className="btn btn-sm btn-light text-danger border rounded-2 d-flex align-items-center p-2"
                             title="Delete User"
-                            onClick={() =>
-                              console.log("Deleting User ID:", user.id)
-                            }
+                            onClick={() => {
+                              setSmShow(true);
+                              setSelectedUser(user);
+                            }}
                           >
                             <Trash size={14} />
                           </button>
@@ -160,6 +175,69 @@ export default function UserDirectoryPage() {
                   ))}
                 </tbody>
               </Table>
+              <Pagination className="justify-content-center mt-3">
+                <Pagination.First
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                />
+
+                <Pagination.Prev
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                />
+
+                {currentPage > 2 && (
+                  <>
+                    <Pagination.Item onClick={() => setCurrentPage(1)}>
+                      1
+                    </Pagination.Item>
+
+                    {currentPage > 3 && <Pagination.Ellipsis />}
+                  </>
+                )}
+
+                {currentPage > 1 && (
+                  <Pagination.Item
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                  >
+                    {currentPage - 1}
+                  </Pagination.Item>
+                )}
+
+                <Pagination.Item active>{currentPage}</Pagination.Item>
+
+                {currentPage < pagination?.pages && (
+                  <Pagination.Item
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  >
+                    {currentPage + 1}
+                  </Pagination.Item>
+                )}
+
+                {currentPage < pagination?.pages - 1 && (
+                  <>
+                    {currentPage < pagination?.pages - 2 && (
+                      <Pagination.Ellipsis />
+                    )}
+
+                    <Pagination.Item
+                      onClick={() => setCurrentPage(pagination.pages)}
+                    >
+                      {pagination.pages}
+                    </Pagination.Item>
+                  </>
+                )}
+
+                <Pagination.Next
+                  disabled={currentPage === pagination?.pages}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                />
+
+                <Pagination.Last
+                  disabled={currentPage === pagination?.pages}
+                  onClick={() => setCurrentPage(pagination.pages)}
+                />
+              </Pagination>
             </div>
           ) : (
             /* Empty State View Layout Component Fallback */
@@ -172,7 +250,51 @@ export default function UserDirectoryPage() {
           )}
         </Card.Body>
       </Card>
+      <Modal
+        size="sm"
+        show={smShow}
+        onHide={() => setSmShow(false)}
+        aria-labelledby="example-modal-sizes-title-sm"
+        centered
+        backdrop="static"
+        keyboard={false}
+      >
+        <Modal.Header closeButton>
+          {/* <Modal.Title id="example-modal-sizes-title-sm">
+            Small Modal
+          </Modal.Title> */}
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to delete this user?</p>
+          <div className="d-flex justify-content-between">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSmShow(false)}
+            >
+              Close
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await dispatch(deleteUser(selectedUser?.id)).unwrap();
 
+                  setSmShow(false);
+
+                  // Optional if your reducer doesn't remove the user automatically
+                  dispatch(fetchUsers(currentPage));
+                } catch (error) {
+                  console.error(error);
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
       <style jsx>{`
         .spin-animation {
           animation: spin 1s linear infinite;
