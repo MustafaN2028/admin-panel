@@ -384,6 +384,85 @@ const Dash = () => {
     }
   }, [activeTab, fetchDashboardSubscriptions]);
 
+  // Tab 5 Payments Ledger live analytics states
+  const [paymentsStart, setPaymentsStart] = useState("");
+  const [paymentsEnd, setPaymentsEnd] = useState("");
+  const [paymentsStatus, setPaymentsStatus] = useState("");
+
+  const [paymentsData, setPaymentsData] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentsError, setPaymentsError] = useState(null);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [paymentsLimit, setPaymentsLimit] = useState(20);
+  const [paymentsTotalPages, setPaymentsTotalPages] = useState(1);
+  const [paymentsTotalCount, setPaymentsTotalCount] = useState(0);
+
+  const fetchDashboardPayments = useCallback(async () => {
+    setPaymentsLoading(true);
+    setPaymentsError(null);
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const params = new URLSearchParams();
+      params.append("page", paymentsPage);
+      params.append("limit", paymentsLimit);
+      if (paymentsStart) params.append("start_date", paymentsStart);
+      if (paymentsEnd) params.append("end_date", paymentsEnd);
+      if (paymentsStatus) params.append("status", paymentsStatus);
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dashboard/payments?${params.toString()}`;
+
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch payments.");
+      }
+
+      if (data.success) {
+        setPaymentsData(data.data || []);
+        if (data.pagination) {
+          setPaymentsTotalPages(data.pagination.pages || 1);
+          setPaymentsTotalCount(data.pagination.total || 0);
+        }
+      } else {
+        throw new Error(data.message || "Request returned unsuccessful status.");
+      }
+    } catch (err) {
+      console.error("fetchDashboardPayments error:", err);
+      setPaymentsError(err.message || "An unexpected error occurred.");
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }, [
+    paymentsPage,
+    paymentsLimit,
+    paymentsStart,
+    paymentsEnd,
+    paymentsStatus,
+  ]);
+
+  // Reset page to 1 on filter changes
+  useEffect(() => {
+    setPaymentsPage(1);
+  }, [
+    paymentsStart,
+    paymentsEnd,
+    paymentsStatus,
+  ]);
+
+  useEffect(() => {
+    if (activeTab === "payments") {
+      fetchDashboardPayments();
+    }
+  }, [activeTab, fetchDashboardPayments]);
+
   const subChartPoints = useMemo(() => {
     return subGrowthData.map((item, idx) => {
       const x = 45 + idx * (435 / Math.max(subGrowthData.length - 1, 1));
@@ -449,49 +528,7 @@ const Dash = () => {
 
 
 
-  // Tab 5: Payments Ledger Logs
-  const paymentsMockTable = [
-    {
-      id: "TXN-9821-A",
-      paymentDate: "2026-06-22",
-      linkedDate: "2026-06-22",
-      refundDate: "N/A",
-      amount: 2999,
-      status: "Success",
-    },
-    {
-      id: "TXN-9822-B",
-      paymentDate: "2026-06-22",
-      linkedDate: "2026-06-22",
-      refundDate: "N/A",
-      amount: 1500,
-      status: "Success",
-    },
-    {
-      id: "TXN-9823-C",
-      paymentDate: "2026-06-21",
-      linkedDate: "2026-06-21",
-      refundDate: "N/A",
-      amount: 4500,
-      status: "Failed",
-    },
-    {
-      id: "TXN-9824-D",
-      paymentDate: "2026-06-20",
-      linkedDate: "2026-06-20",
-      refundDate: "2026-06-21",
-      amount: 2500,
-      status: "Refunded",
-    },
-    {
-      id: "TXN-9825-E",
-      paymentDate: "2026-06-19",
-      linkedDate: "2026-06-19",
-      refundDate: "N/A",
-      amount: 2999,
-      status: "Success",
-    },
-  ];
+
 
   return (
     <div className="container-fluid py-3 px-md-4 bg-light min-vh-100">
@@ -2200,7 +2237,58 @@ const Dash = () => {
           ========================================== */}
       {activeTab === "payments" && (
         <div className="animate-fade-in">
-          {/* A. Payments Stats Metrics Row */}
+          {/* A. Date & Status Filters */}
+          <Card className="border-0 shadow-sm rounded-4 mb-4">
+            <Card.Body className="p-4 bg-white">
+              <h6 className="fw-bold text-dark mb-3">Payments Ledger Filters</h6>
+              <Row className="g-3">
+                <Col sm={12} md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Payment Date Range
+                    </Form.Label>
+                    <div className="d-flex align-items-center gap-2">
+                      <Form.Control
+                        type="date"
+                        size="sm"
+                        value={paymentsStart}
+                        onChange={(e) => setPaymentsStart(e.target.value)}
+                        className="font-monospace border-light-subtle rounded-2"
+                      />
+                      <span className="text-muted small">to</span>
+                      <Form.Control
+                        type="date"
+                        size="sm"
+                        value={paymentsEnd}
+                        onChange={(e) => setPaymentsEnd(e.target.value)}
+                        className="font-monospace border-light-subtle rounded-2"
+                      />
+                    </div>
+                  </Form.Group>
+                </Col>
+                <Col sm={12} md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Payment Status
+                    </Form.Label>
+                    <Form.Select
+                      size="sm"
+                      value={paymentsStatus}
+                      onChange={(e) => setPaymentsStatus(e.target.value)}
+                      className="border-light-subtle rounded-2 font-medium text-secondary"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="captured">Captured</option>
+                      <option value="failed">Failed</option>
+                      <option value="refunded">Refunded</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+
+          {/* B. Payments Stats Metrics Row */}
           <Row className="g-3 mb-4">
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
@@ -2244,7 +2332,7 @@ const Dash = () => {
             </Col>
           </Row>
 
-          {/* B. Payments Table Ledger */}
+          {/* C. Payments Table Ledger */}
           <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
             <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
               <div className="d-flex align-items-center gap-2">
@@ -2260,65 +2348,146 @@ const Dash = () => {
                   <thead className="table-dark border-bottom text-secondary small uppercase fw-semibold">
                     <tr>
                       <th className="py-3 px-4">Txn ID</th>
+                      <th className="py-3 px-4">Customer</th>
                       <th className="py-3 px-4">Payment Date 📅</th>
-                      <th className="py-3 px-4">Subscription Linked Date 📅</th>
-                      <th className="py-3 px-4">Refund Date 📅</th>
                       <th className="py-3 px-4 text-end">Amount</th>
                       <th className="py-3 px-4">Status</th>
                     </tr>
                   </thead>
                   <tbody className="text-dark small fw-medium">
-                    {paymentsMockTable.map((txn, idx) => (
-                      <tr key={idx}>
-                        <td className="px-4 fw-bold font-monospace">
-                          {txn.id}
-                        </td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {txn.paymentDate}
-                        </td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {txn.linkedDate}
-                        </td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {txn.refundDate === "N/A" ? (
-                            <span className="text-muted">N/A</span>
-                          ) : (
-                            txn.refundDate
-                          )}
-                        </td>
-                        <td className="px-4 text-end font-monospace fw-bold text-dark">
-                          {formatCurrency(txn.amount)}
-                        </td>
-                        <td className="px-4">
-                          {txn.status === "Success" ? (
-                            <Badge
-                              bg="success-subtle"
-                              className="text-success border border-success-subtle rounded-2 px-2 py-1.5"
-                            >
-                              Success
-                            </Badge>
-                          ) : txn.status === "Failed" ? (
-                            <Badge
-                              bg="danger-subtle"
-                              className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5"
-                            >
-                              Failed
-                            </Badge>
-                          ) : (
-                            <Badge
-                              bg="warning-subtle"
-                              className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5"
-                            >
-                              Refunded
-                            </Badge>
-                          )}
+                    {paymentsLoading ? (
+                      <tr>
+                        <td colSpan="5" className="text-center py-5">
+                          <div
+                            className="spinner-border spinner-border-sm text-primary me-2"
+                            role="status"
+                          />
+                          <span className="text-muted">
+                            Loading live payments...
+                          </span>
                         </td>
                       </tr>
-                    ))}
+                    ) : paymentsError ? (
+                      <tr>
+                        <td
+                          colSpan="5"
+                          className="text-center py-5 text-danger fw-semibold"
+                        >
+                          ⚠ Error: {paymentsError}
+                        </td>
+                      </tr>
+                    ) : paymentsData.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center py-5 text-muted">
+                          No transactions found matching current filters.
+                        </td>
+                      </tr>
+                    ) : (
+                      paymentsData.map((txn, idx) => (
+                        <tr key={txn.id || idx}>
+                          <td className="px-4 fw-bold font-monospace">
+                            {txn.id}
+                          </td>
+                          <td className="px-4">
+                            <span className="fw-bold text-dark text-capitalize">
+                              {txn.customer_name || "Unnamed"}
+                            </span>
+                            {txn.customer_phone_number && (
+                              <div className="text-muted text-xxs font-monospace mt-0.5">
+                                {txn.customer_phone_number}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 font-monospace text-secondary">
+                            {txn.payment_date || "N/A"}
+                          </td>
+                          <td className="px-4 text-end font-monospace fw-bold text-dark">
+                            {formatCurrency(txn.amount)}
+                          </td>
+                          <td className="px-4">
+                            {txn.status?.toLowerCase() === "captured" || txn.status?.toLowerCase() === "success" ? (
+                              <Badge
+                                bg="success-subtle"
+                                className="text-success border border-success-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                              >
+                                {txn.status}
+                              </Badge>
+                            ) : txn.status?.toLowerCase() === "failed" ? (
+                              <Badge
+                                bg="danger-subtle"
+                                className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                              >
+                                {txn.status}
+                              </Badge>
+                            ) : (
+                              <Badge
+                                bg="warning-subtle"
+                                className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                              >
+                                {txn.status || "Unknown"}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </Table>
               </div>
             </Card.Body>
+            {paymentsData.length > 0 && (
+              <Card.Footer className="bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 border-top">
+                <div className="d-flex align-items-center gap-2 small text-muted">
+                  <span>Show</span>
+                  <Form.Select
+                    size="sm"
+                    value={paymentsLimit}
+                    onChange={(e) => setPaymentsLimit(Number(e.target.value))}
+                    style={{ width: "75px" }}
+                    className="border-light-subtle rounded-2 font-monospace"
+                  >
+                    {[10, 20, 50, 100].map((lim) => (
+                      <option key={lim} value={lim}>
+                        {lim}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <span>
+                    records of <strong>{paymentsTotalCount}</strong> found
+                  </span>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    disabled={paymentsPage === 1 || paymentsLoading}
+                    onClick={() =>
+                      setPaymentsPage((prev) => Math.max(prev - 1, 1))
+                    }
+                  >
+                    ◀ Prev
+                  </Button>
+                  <span className="small fw-bold text-secondary font-monospace px-2">
+                    Page {paymentsPage} of {paymentsTotalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    disabled={paymentsPage === paymentsTotalPages || paymentsLoading}
+                    onClick={() =>
+                      setPaymentsPage((prev) =>
+                        Math.min(prev + 1, paymentsTotalPages),
+                      )
+                    }
+                  >
+                    Next ▶
+                  </Button>
+                </div>
+              </Card.Footer>
+            )}
           </Card>
         </div>
       )}
