@@ -294,6 +294,113 @@ const Dash = () => {
     }
   }, [activeTab, fetchDashboardOrders]);
 
+  // Tab 3 Subscriptions Hub live analytics states
+  const [subStarted, setSubStarted] = useState(142);
+  const [subCancelled, setSubCancelled] = useState(24);
+  const [subRenewed, setSubRenewed] = useState(92);
+  const [subActive, setSubActive] = useState(874);
+
+  const [subRenewalRate, setSubRenewalRate] = useState(84);
+  const [subAvgLifecycle, setSubAvgLifecycle] = useState(180);
+  const [subChurnRate, setSubChurnRate] = useState(1.2);
+
+  const [subGrowthData, setSubGrowthData] = useState([
+    { label: "Jun 16", growth: 12, cancellations: 2 },
+    { label: "Jun 17", growth: 19, cancellations: 1 },
+    { label: "Jun 18", growth: 15, cancellations: 3 },
+    { label: "Jun 19", growth: 28, cancellations: 2 },
+    { label: "Jun 20", growth: 10, cancellations: 4 },
+    { label: "Jun 21", growth: 8, cancellations: 1 },
+    { label: "Jun 22", growth: 22, cancellations: 2 },
+  ]);
+
+  const [subLoading, setSubLoading] = useState(false);
+  const [subError, setSubError] = useState(null);
+
+  const fetchDashboardSubscriptions = useCallback(async () => {
+    setSubLoading(true);
+    setSubError(null);
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dashboard/subscriptions`;
+
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch subscriptions.");
+      }
+
+      if (data.success) {
+        if (data.summary) {
+          setSubStarted(data.summary.started ?? 0);
+          setSubCancelled(data.summary.cancelled ?? 0);
+          setSubRenewed(data.summary.renewed ?? 0);
+          setSubActive(data.summary.active_subscriptions_today ?? 0);
+        }
+        if (data.renewal_analytics) {
+          setSubRenewalRate(data.renewal_analytics.renewal_rate ?? 0);
+          setSubAvgLifecycle(data.renewal_analytics.average_plan_lifecycle_days ?? 0);
+          setSubChurnRate(data.renewal_analytics.churn_rate ?? 0);
+        }
+        if (data.daily_subscription_growth) {
+          const formatChartDate = (dateStr) => {
+            if (!dateStr) return "";
+            const parts = dateStr.split("-");
+            if (parts.length < 3) return dateStr;
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const monthIdx = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            return `${months[monthIdx] || parts[1]} ${day}`;
+          };
+          const mapped = data.daily_subscription_growth.map((item) => ({
+            label: formatChartDate(item.date),
+            growth: item.signups,
+            cancellations: item.cancellations,
+          }));
+          setSubGrowthData(mapped);
+        }
+      } else {
+        throw new Error(data.message || "Request returned unsuccessful status.");
+      }
+    } catch (err) {
+      console.error("fetchDashboardSubscriptions error:", err);
+      setSubError(err.message || "An unexpected error occurred.");
+    } finally {
+      setSubLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "subscriptions") {
+      fetchDashboardSubscriptions();
+    }
+  }, [activeTab, fetchDashboardSubscriptions]);
+
+  const subChartPoints = useMemo(() => {
+    return subGrowthData.map((item, idx) => {
+      const x = 45 + idx * (435 / Math.max(subGrowthData.length - 1, 1));
+      const ySignup = 150 - item.growth * 4;
+      const yCancel = 150 - item.cancellations * 4;
+      return { x, ySignup, yCancel, ...item };
+    });
+  }, [subGrowthData]);
+
+  const subSignupPath = useMemo(() => {
+    return subChartPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.ySignup.toFixed(1)}`).join(" ");
+  }, [subChartPoints]);
+
+  const subCancelPath = useMemo(() => {
+    return subChartPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yCancel.toFixed(1)}`).join(" ");
+  }, [subChartPoints]);
+
   // Hardcoded date values for the designs
   const defaultTodayStr = "2026-06-22";
 
@@ -338,16 +445,7 @@ const Dash = () => {
 
   // Mock data cleaned - replaced with live API states
 
-  // Tab 3: Subscription Analytics
-  const subGrowthData = [
-    { label: "Jun 16", growth: 12, cancellations: 2 },
-    { label: "Jun 17", growth: 19, cancellations: 1 },
-    { label: "Jun 18", growth: 15, cancellations: 3 },
-    { label: "Jun 19", growth: 28, cancellations: 2 },
-    { label: "Jun 20", growth: 10, cancellations: 4 },
-    { label: "Jun 21", growth: 8, cancellations: 1 },
-    { label: "Jun 22", growth: 22, cancellations: 2 },
-  ];
+
 
 
 
@@ -1588,7 +1686,7 @@ const Dash = () => {
                   Started in Range
                 </span>
                 <h4 className="fw-bold text-primary font-monospace mt-1 mb-0">
-                  +142
+                  {subLoading ? "..." : `+${subStarted}`}
                 </h4>
               </div>
             </Col>
@@ -1598,7 +1696,7 @@ const Dash = () => {
                   Cancelled in Range
                 </span>
                 <h4 className="fw-bold text-danger font-monospace mt-1 mb-0">
-                  -24
+                  {subLoading ? "..." : `-${subCancelled}`}
                 </h4>
               </div>
             </Col>
@@ -1608,7 +1706,7 @@ const Dash = () => {
                   Renewed in Range
                 </span>
                 <h4 className="fw-bold text-success font-monospace mt-1 mb-0">
-                  +92
+                  {subLoading ? "..." : `+${subRenewed}`}
                 </h4>
               </div>
             </Col>
@@ -1618,7 +1716,7 @@ const Dash = () => {
                   Active Subscriptions (Today)
                 </span>
                 <h4 className="fw-bold text-dark font-monospace mt-1 mb-0">
-                  874
+                  {subLoading ? "..." : subActive}
                 </h4>
               </div>
             </Col>
@@ -1652,87 +1750,94 @@ const Dash = () => {
                     className="chart-container-inner"
                     style={{ minHeight: "220px" }}
                   >
-                    <svg
-                      width="100%"
-                      height="200"
-                      viewBox="0 0 500 200"
-                      className="overflow-visible"
-                    >
-                      {/* Grid Lines */}
-                      {[0, 1, 2, 3].map((g) => (
-                        <line
-                          key={g}
-                          x1="40"
-                          y1={15 + g * 45}
-                          x2="480"
-                          y2={15 + g * 45}
-                          stroke="#f3f4f6"
-                          strokeWidth="1.5"
-                        />
-                      ))}
-
-                      {/* Signups Line */}
-                      <path
-                        d="M 45 120 L 117 80 L 190 100 L 262 30 L 335 130 L 407 140 L 480 60"
-                        fill="none"
-                        stroke="#6366f1"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-
-                      {/* Cancellations Line */}
-                      <path
-                        d="M 45 140 L 117 145 L 190 135 L 262 140 L 335 120 L 407 145 L 480 140"
-                        fill="none"
-                        stroke="#f43f5e"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                      />
-
-                      {/* Interactive nodes */}
-                      {[
-                        { x: 45, growth: 12, cancel: 2 },
-                        { x: 117, growth: 19, cancel: 1 },
-                        { x: 190, growth: 15, cancel: 3 },
-                        { x: 262, growth: 28, cancel: 2 },
-                        { x: 335, growth: 10, cancel: 4 },
-                        { x: 407, growth: 8, cancel: 1 },
-                        { x: 480, growth: 22, cancel: 2 },
-                      ].map((node, i) => (
-                        <circle
-                          key={i}
-                          cx={node.x}
-                          cy={150 - node.growth * 4}
-                          r={hoveredSubIdx === i ? 6 : 3.5}
-                          fill="#6366f1"
-                          stroke="#ffffff"
-                          strokeWidth="1"
-                          onMouseEnter={() => setHoveredSubIdx(i)}
-                          onMouseLeave={() => setHoveredSubIdx(null)}
-                          style={{ cursor: "pointer" }}
-                        />
-                      ))}
-                    </svg>
-                    {hoveredSubIdx !== null && (
-                      <div
-                        className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
-                        style={{
-                          left: `${subGrowthData[hoveredSubIdx].label === "Jun 16" ? 15 : hoveredSubIdx * 15 + 10}%`,
-                          top: "20px",
-                          zIndex: 10,
-                        }}
-                      >
-                        <div className="text-secondary small fw-bold">
-                          {subGrowthData[hoveredSubIdx].label}
-                        </div>
-                        <div className="text-indigo small font-monospace">
-                          Signups: +{subGrowthData[hoveredSubIdx].growth}
-                        </div>
-                        <div className="text-danger small font-monospace">
-                          Cancelled: -
-                          {subGrowthData[hoveredSubIdx].cancellations}
-                        </div>
+                    {subLoading ? (
+                      <div className="d-flex align-items-center justify-content-center" style={{ height: "200px" }}>
+                        <div className="spinner-border text-primary" role="status" />
                       </div>
+                    ) : subError ? (
+                      <div className="d-flex align-items-center justify-content-center text-danger fw-semibold" style={{ height: "200px" }}>
+                        ⚠ Error: {subError}
+                      </div>
+                    ) : subGrowthData.length === 0 ? (
+                      <div className="d-flex align-items-center justify-content-center text-muted" style={{ height: "200px" }}>
+                        No subscription growth data available.
+                      </div>
+                    ) : (
+                      <>
+                        <svg
+                          width="100%"
+                          height="200"
+                          viewBox="0 0 500 200"
+                          className="overflow-visible"
+                        >
+                          {/* Grid Lines */}
+                          {[0, 1, 2, 3].map((g) => (
+                            <line
+                              key={g}
+                              x1="40"
+                              y1={15 + g * 45}
+                              x2="480"
+                              y2={15 + g * 45}
+                              stroke="#f3f4f6"
+                              strokeWidth="1.5"
+                            />
+                          ))}
+
+                          {/* Signups Line */}
+                          <path
+                            d={subSignupPath}
+                            fill="none"
+                            stroke="#6366f1"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+
+                          {/* Cancellations Line */}
+                          <path
+                            d={subCancelPath}
+                            fill="none"
+                            stroke="#f43f5e"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+
+                          {/* Interactive nodes */}
+                          {subChartPoints.map((node, i) => (
+                            <circle
+                              key={i}
+                              cx={node.x}
+                              cy={node.ySignup}
+                              r={hoveredSubIdx === i ? 6 : 3.5}
+                              fill="#6366f1"
+                              stroke="#ffffff"
+                              strokeWidth="1"
+                              onMouseEnter={() => setHoveredSubIdx(i)}
+                              onMouseLeave={() => setHoveredSubIdx(null)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          ))}
+                        </svg>
+                        {hoveredSubIdx !== null && subGrowthData[hoveredSubIdx] && (
+                          <div
+                            className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
+                            style={{
+                              left: `${subGrowthData[hoveredSubIdx].label === "Jun 16" ? 15 : hoveredSubIdx * 15 + 10}%`,
+                              top: "20px",
+                              zIndex: 10,
+                            }}
+                          >
+                            <div className="text-secondary small fw-bold">
+                              {subGrowthData[hoveredSubIdx].label}
+                            </div>
+                            <div className="text-indigo small font-monospace">
+                              Signups: +{subGrowthData[hoveredSubIdx].growth}
+                            </div>
+                            <div className="text-danger small font-monospace">
+                              Cancelled: -{subGrowthData[hoveredSubIdx].cancellations}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </Card.Body>
@@ -1778,14 +1883,14 @@ const Dash = () => {
                         stroke="#10b981"
                         strokeWidth="9"
                         strokeDasharray="251.2"
-                        strokeDashoffset="40" // represents 84%
+                        strokeDashoffset={251.2 - (251.2 * (subLoading ? 84 : subRenewalRate)) / 100}
                         strokeLinecap="round"
                         transform="rotate(-90 50 50)"
                       />
                     </svg>
                     <div className="position-absolute text-center">
                       <h2 className="fw-bold mb-0 font-monospace text-emerald">
-                        84%
+                        {subLoading ? "..." : `${subRenewalRate}%`}
                       </h2>
                       <span className="text-muted text-xxs fw-semibold uppercase">
                         Renewal Rate
@@ -1799,14 +1904,14 @@ const Dash = () => {
                         Average Plan Lifecycle
                       </h6>
                       <h5 className="fw-bold text-dark mb-0 font-monospace">
-                        180 Days
+                        {subLoading ? "..." : `${subAvgLifecycle} Days`}
                       </h5>
                     </div>
                     <div className="border-end" />
                     <div>
                       <h6 className="text-muted small mb-0.5">Churn Rate</h6>
                       <h5 className="fw-bold text-danger mb-0 font-monospace">
-                        1.2%
+                        {subLoading ? "..." : `${subChurnRate}%`}
                       </h5>
                     </div>
                   </div>
