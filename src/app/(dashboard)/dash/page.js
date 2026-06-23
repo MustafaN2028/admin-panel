@@ -33,6 +33,13 @@ import {
   Speedometer2,
 } from "react-bootstrap-icons";
 
+const getLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const Dash = () => {
   // Navigation active tab: 'overview' | 'users' | 'subscriptions' | 'orders' | 'payments'
   const [activeTab, setActiveTab] = useState("overview");
@@ -42,10 +49,61 @@ const Dash = () => {
   const [hoveredTrendIdx, setHoveredTrendIdx] = useState(null);
   const [hoveredSubIdx, setHoveredSubIdx] = useState(null);
 
-  // Tab 1 Date values
-  const [overviewStart, setOverviewStart] = useState("2026-06-16");
-  const [overviewEnd, setOverviewEnd] = useState("2026-06-22");
+  const todayStr = useMemo(() => getLocalDateString(new Date()), []);
+  const defaultStartStr = useMemo(
+    () => getLocalDateString(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)),
+    [],
+  );
 
+  // Tab 1 Date values
+  const [overviewStart, setOverviewStart] = useState(defaultStartStr);
+  const [overviewEnd, setOverviewEnd] = useState(todayStr);
+
+  // Live Dashboard Overview States
+  const [overviewData, setOverviewData] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [overviewError, setOverviewError] = useState(null);
+
+  const fetchDashboardOverview = useCallback(async () => {
+    setOverviewLoading(true);
+    setOverviewError(null);
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const params = new URLSearchParams();
+      if (overviewStart) params.append("start_date", overviewStart);
+      if (overviewEnd) params.append("end_date", overviewEnd);
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dashboard/overview?${params.toString()}`;
+
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch overview metrics.");
+      }
+
+      setOverviewData(data);
+    } catch (err) {
+      console.error("fetchDashboardOverview error:", err);
+      setOverviewError(err.message || "An unexpected error occurred.");
+    } finally {
+      setOverviewLoading(false);
+    }
+  }, [overviewStart, overviewEnd]);
+
+  useEffect(() => {
+    if (activeTab === "overview") {
+      fetchDashboardOverview();
+    }
+  }, [activeTab, fetchDashboardOverview]);
+  console.log(overviewData, "llll");
   // Tab 2 Date values
   const [usersSignupStart, setUsersSignupStart] = useState("");
   const [usersSignupEnd, setUsersSignupEnd] = useState("");
@@ -318,8 +376,8 @@ const Dash = () => {
           >
             Design Mode: Enabled
           </Badge>
-          <Badge bg="dark" className="px-2 py-1.5 rounded-2">
-            Local Time: 2026-06-22
+          <Badge bg="dark" className="px-2 py-1.5 rounded-2 font-monospace">
+            Local Time: {todayStr}
           </Badge>
         </div>
       </div>
@@ -377,7 +435,7 @@ const Dash = () => {
                   bg="primary-subtle"
                   className="text-primary px-3 py-1.5 rounded-2"
                 >
-                  Last 7 Days (Jun 16 - Jun 22)
+                  Selected Range: {overviewStart} to {overviewEnd}
                 </Badge>
               </div>
               <div className="d-flex align-items-center gap-2">
@@ -385,7 +443,16 @@ const Dash = () => {
                   type="date"
                   size="sm"
                   value={overviewStart}
-                  onChange={(e) => setOverviewStart(e.target.value)}
+                  max={todayStr}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && val <= todayStr) {
+                      setOverviewStart(val);
+                      if (overviewEnd && val > overviewEnd) {
+                        setOverviewEnd(val);
+                      }
+                    }
+                  }}
                   className="font-monospace border-light-subtle rounded-2"
                 />
                 <span className="text-muted small">to</span>
@@ -393,16 +460,26 @@ const Dash = () => {
                   type="date"
                   size="sm"
                   value={overviewEnd}
-                  onChange={(e) => setOverviewEnd(e.target.value)}
+                  max={todayStr}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && val <= todayStr) {
+                      setOverviewEnd(val);
+                      if (overviewStart && val < overviewStart) {
+                        setOverviewStart(val);
+                      }
+                    }
+                  }}
                   className="font-monospace border-light-subtle rounded-2"
                 />
                 <Button
                   variant="outline-dark"
                   size="sm"
                   className="rounded-2"
-                  disabled
+                  onClick={fetchDashboardOverview}
+                  disabled={overviewLoading}
                 >
-                  Filter
+                  {overviewLoading ? "Loading..." : "Filter"}
                 </Button>
               </div>
             </Card.Body>
@@ -419,17 +496,40 @@ const Dash = () => {
                       <span className="text-muted small fw-semibold text-uppercase tracking-wider">
                         👥 New Users
                       </span>
-                      <h3 className="fw-bold mt-1 mb-0 font-monospace">156</h3>
+                      <h3 className="fw-bold mt-1 mb-0 font-monospace">
+                        {overviewLoading
+                          ? "..."
+                          : (overviewData?.new_users ?? 0)}
+                      </h3>
                     </div>
                     <div className="kpi-icon-bg bg-primary bg-opacity-10 text-primary p-2.5 rounded-3">
                       <PersonPlusFill size={22} />
                     </div>
                   </div>
                   <div className="d-flex align-items-center mt-3 gap-1">
-                    <span className="text-success small fw-bold d-flex align-items-center gap-0.5">
-                      <ArrowUpRight size={12} /> +12.4%
-                    </span>
-                    <span className="text-muted small">vs last period</span>
+                    {overviewLoading ? (
+                      <span className="text-muted small">Loading trend...</span>
+                    ) : (
+                      <>
+                        <span
+                          className={`small fw-bold d-flex align-items-center gap-0.5 ${
+                            (overviewData?.new_users_change_percentage ?? 0) >=
+                            0
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                          {(overviewData?.new_users_change_percentage ?? 0) >=
+                          0 ? (
+                            <ArrowUpRight size={12} />
+                          ) : (
+                            <ArrowDownRight size={12} />
+                          )}
+                          {overviewData?.new_users_change_percentage ?? 0}%
+                        </span>
+                        <span className="text-muted small">vs last period</span>
+                      </>
+                    )}
                   </div>
                   <div className="accent-bar bg-primary" />
                 </Card.Body>
@@ -446,7 +546,11 @@ const Dash = () => {
                         🆕 Daily Active (DAU)
                       </span>
                       <div className="d-flex align-items-baseline gap-2 mt-1">
-                        <h3 className="fw-bold mb-0 font-monospace">842</h3>
+                        <h3 className="fw-bold mb-0 font-monospace">
+                          {overviewLoading
+                            ? "..."
+                            : (overviewData?.daily_active_users ?? 0)}
+                        </h3>
                         <span className="live-pulse-container">
                           <span className="live-pulse-dot" />
                           <span className="live-pulse-ring" />
@@ -458,12 +562,29 @@ const Dash = () => {
                     </div>
                   </div>
                   <div className="d-flex align-items-center mt-3 gap-1">
-                    <span className="text-success small fw-bold d-flex align-items-center gap-0.5">
-                      <ArrowUpRight size={12} /> +4.2%
-                    </span>
-                    <span className="text-muted small">
-                      active sessions today
-                    </span>
+                    {overviewLoading ? (
+                      <span className="text-muted small">Loading trend...</span>
+                    ) : (
+                      <>
+                        <span
+                          className={`small fw-bold d-flex align-items-center gap-0.5 ${
+                            (overviewData?.dau_change_percentage ?? 0) >= 0
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                          {(overviewData?.dau_change_percentage ?? 0) >= 0 ? (
+                            <ArrowUpRight size={12} />
+                          ) : (
+                            <ArrowDownRight size={12} />
+                          )}
+                          {overviewData?.dau_change_percentage ?? 0}%
+                        </span>
+                        <span className="text-muted small">
+                          active sessions today
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="accent-bar bg-danger" />
                 </Card.Body>
@@ -480,7 +601,9 @@ const Dash = () => {
                         📈 Weekly Active (WAU)
                       </span>
                       <h3 className="fw-bold mt-1 mb-0 font-monospace">
-                        4,520
+                        {overviewLoading
+                          ? "..."
+                          : (overviewData?.weekly_active_users ?? 0)}
                       </h3>
                     </div>
                     <div className="kpi-icon-bg bg-info bg-opacity-10 text-info p-2.5 rounded-3">
@@ -490,12 +613,18 @@ const Dash = () => {
                   <div className="d-flex flex-column mt-3 w-100">
                     <div className="d-flex justify-content-between small text-muted mb-1">
                       <span>DAU to WAU ratio:</span>
-                      <strong>18.6%</strong>
+                      <strong>
+                        {overviewLoading
+                          ? "..."
+                          : `${overviewData?.dau_wau_ratio ?? 0}%`}
+                      </strong>
                     </div>
                     <div className="progress-bar-thin bg-light rounded-pill">
                       <div
                         className="progress-bar-fill bg-info rounded-pill"
-                        style={{ width: "18.6%" }}
+                        style={{
+                          width: `${overviewData?.dau_wau_ratio ?? 0}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -514,7 +643,9 @@ const Dash = () => {
                         💰 Total Income
                       </span>
                       <h3 className="fw-bold mt-1 mb-0 font-monospace text-emerald">
-                        {formatCurrency(283700)}
+                        {overviewLoading
+                          ? "..."
+                          : formatCurrency(overviewData?.total_income ?? 0)}
                       </h3>
                     </div>
                     <div className="kpi-icon-bg bg-success bg-opacity-10 text-success p-2.5 rounded-3">
@@ -522,10 +653,30 @@ const Dash = () => {
                     </div>
                   </div>
                   <div className="d-flex align-items-center mt-3 gap-1">
-                    <span className="text-success small fw-bold d-flex align-items-center gap-0.5">
-                      <ArrowUpRight size={12} /> +18.5%
-                    </span>
-                    <span className="text-muted small">in selected dates</span>
+                    {overviewLoading ? (
+                      <span className="text-muted small">Loading trend...</span>
+                    ) : (
+                      <>
+                        <span
+                          className={`small fw-bold d-flex align-items-center gap-0.5 ${
+                            (overviewData?.income_change_percentage ?? 0) >= 0
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                          {(overviewData?.income_change_percentage ?? 0) >=
+                          0 ? (
+                            <ArrowUpRight size={12} />
+                          ) : (
+                            <ArrowDownRight size={12} />
+                          )}
+                          {overviewData?.income_change_percentage ?? 0}%
+                        </span>
+                        <span className="text-muted small">
+                          in selected dates
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="accent-bar bg-success" />
                 </Card.Body>
@@ -558,7 +709,9 @@ const Dash = () => {
                         </span>
                       </div>
                       <span className="fw-bold font-monospace text-primary h5 mb-0">
-                        874
+                        {overviewLoading
+                          ? "..."
+                          : (overviewData?.subscriptions?.active ?? 0)}
                       </span>
                     </div>
 
@@ -572,7 +725,9 @@ const Dash = () => {
                         </span>
                       </div>
                       <span className="fw-bold font-monospace text-success h5 mb-0">
-                        +142
+                        {overviewLoading
+                          ? "..."
+                          : `+${overviewData?.subscriptions?.started ?? 0}`}
                       </span>
                     </div>
 
@@ -586,7 +741,9 @@ const Dash = () => {
                         </span>
                       </div>
                       <span className="fw-bold font-monospace text-danger h5 mb-0">
-                        -24
+                        {overviewLoading
+                          ? "..."
+                          : `-${overviewData?.subscriptions?.cancelled ?? 0}`}
                       </span>
                     </div>
 
@@ -600,7 +757,9 @@ const Dash = () => {
                         </span>
                       </div>
                       <span className="fw-bold font-monospace text-warning h5 mb-0">
-                        +92
+                        {overviewLoading
+                          ? "..."
+                          : `+${overviewData?.subscriptions?.renewed ?? 0}`}
                       </span>
                     </div>
                   </div>
@@ -619,7 +778,13 @@ const Dash = () => {
                     </h5>
                   </div>
                   <span className="text-muted small">
-                    Total: <strong>1,280</strong> placed
+                    Total:{" "}
+                    <strong>
+                      {overviewLoading
+                        ? "..."
+                        : (overviewData?.orders?.total_placed ?? 0)}
+                    </strong>{" "}
+                    placed
                   </span>
                 </Card.Header>
                 <Card.Body className="p-4 d-flex flex-column justify-content-center">
@@ -633,15 +798,27 @@ const Dash = () => {
                     >
                       <div
                         className="progress-bar bg-success"
-                        style={{ width: "88%" }}
+                        style={{
+                          width: `${overviewLoading ? 88 : (overviewData?.orders?.fulfillment_percentage ?? 0)}%`,
+                        }}
                       >
-                        Delivered (88%)
+                        Delivered (
+                        {overviewLoading
+                          ? "..."
+                          : `${overviewData?.orders?.fulfillment_percentage ?? 0}%`}
+                        )
                       </div>
                       <div
                         className="progress-bar bg-warning text-dark"
-                        style={{ width: "12%" }}
+                        style={{
+                          width: `${overviewLoading ? 12 : Math.max(100 - (overviewData?.orders?.fulfillment_percentage ?? 0), 0)}%`,
+                        }}
                       >
-                        Pending (12%)
+                        Pending (
+                        {overviewLoading
+                          ? "..."
+                          : `${Math.max(100 - (overviewData?.orders?.fulfillment_percentage ?? 0), 0)}%`}
+                        )
                       </div>
                     </div>
                   </div>
@@ -657,7 +834,9 @@ const Dash = () => {
                           Delivered
                         </h6>
                         <h5 className="fw-bold text-dark mb-0 font-monospace">
-                          1,126
+                          {overviewLoading
+                            ? "..."
+                            : (overviewData?.orders?.delivered ?? 0)}
                         </h5>
                       </div>
                     </Col>
@@ -669,7 +848,9 @@ const Dash = () => {
                         />
                         <h6 className="mb-0.5 text-secondary small">Pending</h6>
                         <h5 className="fw-bold text-dark mb-0 font-monospace">
-                          154
+                          {overviewLoading
+                            ? "..."
+                            : (overviewData?.orders?.pending ?? 0)}
                         </h5>
                       </div>
                     </Col>
@@ -683,7 +864,9 @@ const Dash = () => {
                           Fulfillment
                         </h6>
                         <h5 className="fw-bold text-dark mb-0 font-monospace">
-                          88%
+                          {overviewLoading
+                            ? "..."
+                            : `${overviewData?.orders?.fulfillment_percentage ?? 0}%`}
                         </h5>
                       </div>
                     </Col>
