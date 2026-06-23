@@ -203,6 +203,8 @@ const Dash = () => {
   // Tab 4 Date & Status values
   const [ordersPlacedStart, setOrdersPlacedStart] = useState("");
   const [ordersPlacedEnd, setOrdersPlacedEnd] = useState("");
+  const [ordersDeliveryStart, setOrdersDeliveryStart] = useState("");
+  const [ordersDeliveryEnd, setOrdersDeliveryEnd] = useState("");
   const [ordersStatus, setOrdersStatus] = useState("");
 
   // Orders live list & pagination states
@@ -226,11 +228,13 @@ const Dash = () => {
       const token =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const params = new URLSearchParams();
-      params.append("page", ordersPage);
-      params.append("limit", ordersLimit);
       if (ordersPlacedStart) params.append("placed_start_date", ordersPlacedStart);
       if (ordersPlacedEnd) params.append("placed_end_date", ordersPlacedEnd);
+      if (ordersDeliveryStart) params.append("delivery_start_date", ordersDeliveryStart);
+      if (ordersDeliveryEnd) params.append("delivery_end_date", ordersDeliveryEnd);
       if (ordersStatus) params.append("status", ordersStatus);
+      params.append("page", ordersPage);
+      params.append("limit", ordersLimit);
 
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dashboard/orders?${params.toString()}`;
 
@@ -276,6 +280,8 @@ const Dash = () => {
     ordersLimit,
     ordersPlacedStart,
     ordersPlacedEnd,
+    ordersDeliveryStart,
+    ordersDeliveryEnd,
     ordersStatus,
   ]);
 
@@ -285,6 +291,8 @@ const Dash = () => {
   }, [
     ordersPlacedStart,
     ordersPlacedEnd,
+    ordersDeliveryStart,
+    ordersDeliveryEnd,
     ordersStatus,
   ]);
 
@@ -1973,7 +1981,7 @@ const Dash = () => {
             <Card.Body className="p-4 bg-white">
               <h6 className="fw-bold text-dark mb-3">Order Schedule Filters</h6>
               <Row className="g-3">
-                <Col sm={12} md={6}>
+                <Col sm={12} md={4}>
                   <Form.Group>
                     <Form.Label className="small fw-semibold text-muted">
                       Orders Placed Range
@@ -1997,7 +2005,31 @@ const Dash = () => {
                     </div>
                   </Form.Group>
                 </Col>
-                <Col sm={12} md={6}>
+                <Col sm={12} md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Delivery Date Range
+                    </Form.Label>
+                    <div className="d-flex align-items-center gap-2">
+                      <Form.Control
+                        type="date"
+                        size="sm"
+                        value={ordersDeliveryStart}
+                        onChange={(e) => setOrdersDeliveryStart(e.target.value)}
+                        className="font-monospace border-light-subtle rounded-2"
+                      />
+                      <span className="text-muted small">to</span>
+                      <Form.Control
+                        type="date"
+                        size="sm"
+                        value={ordersDeliveryEnd}
+                        onChange={(e) => setOrdersDeliveryEnd(e.target.value)}
+                        className="font-monospace border-light-subtle rounded-2"
+                      />
+                    </div>
+                  </Form.Group>
+                </Col>
+                <Col sm={12} md={4}>
                   <Form.Group>
                     <Form.Label className="small fw-semibold text-muted">
                       Fulfillment Status
@@ -2010,9 +2042,9 @@ const Dash = () => {
                     >
                       <option value="">All Statuses</option>
                       <option value="delivered">Delivered</option>
-                      <option value="in transit">In Transit</option>
-                      <option value="pending dispatch">Pending Dispatch</option>
-                      <option value="awaiting payment">Awaiting Payment</option>
+                      <option value="in_transit">In Transit</option>
+                      <option value="pending_dispatch">Pending Dispatch</option>
+                      <option value="awaiting_payment">Awaiting Payment</option>
                       <option value="cancelled">Cancelled</option>
                     </Form.Select>
                   </Form.Group>
@@ -2109,71 +2141,74 @@ const Dash = () => {
                         </td>
                       </tr>
                     ) : (
-                      ordersData.map((order, idx) => (
-                        <tr key={order.id || idx}>
-                          <td className="px-4 fw-bold font-monospace">
-                            {order.id}
-                          </td>
-                          <td className="px-4">
-                            <span className="fw-bold text-dark text-capitalize">
-                              {order.customer_name || "Unnamed"}
-                            </span>
-                            {order.customer_phone_number && (
-                              <div className="text-muted text-xxs font-monospace mt-0.5">
-                                {order.customer_phone_number}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 font-monospace text-secondary">
-                            {order.placed_date || "N/A"}
-                          </td>
-                          <td className="px-4 font-monospace text-secondary">
-                            {order.status?.toLowerCase() !== "awaiting payment" ? (
-                              order.placed_date || "N/A"
-                            ) : (
-                              <span className="text-warning">Pending</span>
-                            )}
-                          </td>
-                          <td className="px-4 font-monospace text-secondary">
-                            {order.dispatch_date || "Pending"}
-                          </td>
-                          <td className="px-4 font-monospace text-secondary">
-                            {order.expected_delivery_date || "Pending"}
-                          </td>
-                          <td className="px-4">
-                            {order.status?.toLowerCase() === "delivered" ? (
-                              <Badge
-                                bg="success-subtle"
-                                className="text-success border border-success-subtle rounded-2 px-2 py-1.5 text-capitalize"
-                              >
-                                {order.status}
-                              </Badge>
-                            ) : order.status?.toLowerCase() === "in transit" ||
-                              order.status?.toLowerCase() === "pending dispatch" ? (
-                              <Badge
-                                bg="warning-subtle"
-                                className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5 text-capitalize"
-                              >
-                                {order.status}
-                              </Badge>
-                            ) : order.status?.toLowerCase() === "cancelled" ? (
-                              <Badge
-                                bg="danger-subtle"
-                                className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5 text-capitalize"
-                              >
-                                {order.status}
-                              </Badge>
-                            ) : (
-                              <Badge
-                                bg="secondary-subtle"
-                                className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5 text-capitalize"
-                              >
-                                {order.status || "Unknown"}
-                              </Badge>
-                            )}
-                          </td>
-                        </tr>
-                      ))
+                      ordersData.map((order, idx) => {
+                        const normalizedStatus = order.status?.toLowerCase().replace(/_/g, " ") || "";
+                        return (
+                          <tr key={order.id || idx}>
+                            <td className="px-4 fw-bold font-monospace">
+                              {order.id}
+                            </td>
+                            <td className="px-4">
+                              <span className="fw-bold text-dark text-capitalize">
+                                {order.customer_name || "Unnamed"}
+                              </span>
+                              {order.customer_phone_number && (
+                                <div className="text-muted text-xxs font-monospace mt-0.5">
+                                  {order.customer_phone_number}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 font-monospace text-secondary">
+                              {order.placed_date || "N/A"}
+                            </td>
+                            <td className="px-4 font-monospace text-secondary">
+                              {normalizedStatus !== "awaiting payment" ? (
+                                order.placed_date || "N/A"
+                              ) : (
+                                <span className="text-warning">Pending</span>
+                              )}
+                            </td>
+                            <td className="px-4 font-monospace text-secondary">
+                              {order.dispatch_date || "Pending"}
+                            </td>
+                            <td className="px-4 font-monospace text-secondary">
+                              {order.expected_delivery_date || "Pending"}
+                            </td>
+                            <td className="px-4">
+                              {normalizedStatus === "delivered" ? (
+                                <Badge
+                                  bg="success-subtle"
+                                  className="text-success border border-success-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                >
+                                  {order.status}
+                                </Badge>
+                              ) : normalizedStatus === "in transit" ||
+                                normalizedStatus === "pending dispatch" ? (
+                                <Badge
+                                  bg="warning-subtle"
+                                  className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                >
+                                  {order.status}
+                                </Badge>
+                              ) : normalizedStatus === "cancelled" ? (
+                                <Badge
+                                  bg="danger-subtle"
+                                  className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                >
+                                  {order.status}
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  bg="secondary-subtle"
+                                  className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                >
+                                  {order.status || "Unknown"}
+                                </Badge>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </Table>
