@@ -200,15 +200,99 @@ const Dash = () => {
   }, [activeTab, fetchDashboardUsers]);
   console.log(usersData, "UU");
 
-  // Tab 4 Date values
-  const [ordersPlacedStart, setOrdersPlacedStart] = useState("2026-06-01");
-  const [ordersPlacedEnd, setOrdersPlacedEnd] = useState("2026-06-22");
-  const [ordersDeliveredStart, setOrdersDeliveredStart] =
-    useState("2026-06-01");
-  const [ordersDeliveredEnd, setOrdersDeliveredEnd] = useState("2026-06-22");
-  const [ordersCancelledStart, setOrdersCancelledStart] =
-    useState("2026-06-01");
-  const [ordersCancelledEnd, setOrdersCancelledEnd] = useState("2026-06-22");
+  // Tab 4 Date & Status values
+  const [ordersPlacedStart, setOrdersPlacedStart] = useState("");
+  const [ordersPlacedEnd, setOrdersPlacedEnd] = useState("");
+  const [ordersStatus, setOrdersStatus] = useState("");
+
+  // Orders live list & pagination states
+  const [ordersData, setOrdersData] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState(null);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersLimit, setOrdersLimit] = useState(20);
+  const [ordersTotalPages, setOrdersTotalPages] = useState(1);
+  const [ordersTotalCount, setOrdersTotalCount] = useState(0);
+
+  // Orders summary statistics states
+  const [ordersPeakDays, setOrdersPeakDays] = useState("Wednesday & Sunday");
+  const [ordersAvgDelivery, setOrdersAvgDelivery] = useState(2.4);
+  const [ordersFulfillmentRatio, setOrdersFulfillmentRatio] = useState(94);
+
+  const fetchDashboardOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    setOrdersError(null);
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const params = new URLSearchParams();
+      params.append("page", ordersPage);
+      params.append("limit", ordersLimit);
+      if (ordersPlacedStart) params.append("placed_start_date", ordersPlacedStart);
+      if (ordersPlacedEnd) params.append("placed_end_date", ordersPlacedEnd);
+      if (ordersStatus) params.append("status", ordersStatus);
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dashboard/orders?${params.toString()}`;
+
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch orders.");
+      }
+
+      if (data.success) {
+        setOrdersData(data.data || []);
+        if (data.summary) {
+          setOrdersPeakDays(
+            Array.isArray(data.summary.peak_order_days)
+              ? data.summary.peak_order_days.join(" & ")
+              : data.summary.peak_order_days || "N/A"
+          );
+          setOrdersAvgDelivery(data.summary.average_delivery_time_days ?? 0);
+          setOrdersFulfillmentRatio(data.summary.fulfillment_target_ratio ?? 0);
+        }
+        if (data.pagination) {
+          setOrdersTotalPages(data.pagination.pages || 1);
+          setOrdersTotalCount(data.pagination.total || 0);
+        }
+      } else {
+        throw new Error(data.message || "Request returned unsuccessful status.");
+      }
+    } catch (err) {
+      console.error("fetchDashboardOrders error:", err);
+      setOrdersError(err.message || "An unexpected error occurred.");
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [
+    ordersPage,
+    ordersLimit,
+    ordersPlacedStart,
+    ordersPlacedEnd,
+    ordersStatus,
+  ]);
+
+  // Reset page to 1 on filter changes to prevent fetching out-of-bounds page indices
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [
+    ordersPlacedStart,
+    ordersPlacedEnd,
+    ordersStatus,
+  ]);
+
+  useEffect(() => {
+    if (activeTab === "orders") {
+      fetchDashboardOrders();
+    }
+  }, [activeTab, fetchDashboardOrders]);
 
   // Hardcoded date values for the designs
   const defaultTodayStr = "2026-06-22";
@@ -265,54 +349,7 @@ const Dash = () => {
     { label: "Jun 22", growth: 22, cancellations: 2 },
   ];
 
-  // Tab 4: Orders & Fulfillment Tracker
-  const ordersMockTable = [
-    {
-      id: "ORD-2026-8890",
-      placed: "2026-06-18",
-      payment: "2026-06-18",
-      dispatch: "2026-06-19",
-      delivery: "2026-06-21",
-      status: "Delivered",
-      amount: 1500,
-    },
-    {
-      id: "ORD-2026-8891",
-      placed: "2026-06-20",
-      payment: "2026-06-20",
-      dispatch: "2026-06-21",
-      delivery: "Pending",
-      status: "In Transit",
-      amount: 2200,
-    },
-    {
-      id: "ORD-2026-8892",
-      placed: "2026-06-21",
-      payment: "2026-06-21",
-      dispatch: "Pending",
-      delivery: "Pending",
-      status: "Pending Dispatch",
-      amount: 1250,
-    },
-    {
-      id: "ORD-2026-8893",
-      placed: "2026-06-22",
-      payment: "Pending",
-      dispatch: "Pending",
-      delivery: "Pending",
-      status: "Awaiting Payment",
-      amount: 3500,
-    },
-    {
-      id: "ORD-2026-8894",
-      placed: "2026-06-15",
-      payment: "2026-06-15",
-      dispatch: "Cancelled",
-      delivery: "Cancelled",
-      status: "Cancelled",
-      amount: 1800,
-    },
-  ];
+
 
   // Tab 5: Payments Ledger Logs
   const paymentsMockTable = [
@@ -1785,12 +1822,12 @@ const Dash = () => {
           ========================================== */}
       {activeTab === "orders" && (
         <div className="animate-fade-in">
-          {/* A. Date Filters */}
+          {/* A. Date & Status Filters */}
           <Card className="border-0 shadow-sm rounded-4 mb-4">
             <Card.Body className="p-4 bg-white">
               <h6 className="fw-bold text-dark mb-3">Order Schedule Filters</h6>
               <Row className="g-3">
-                <Col sm={12} md={4}>
+                <Col sm={12} md={6}>
                   <Form.Group>
                     <Form.Label className="small fw-semibold text-muted">
                       Orders Placed Range
@@ -1814,56 +1851,24 @@ const Dash = () => {
                     </div>
                   </Form.Group>
                 </Col>
-                <Col sm={12} md={4}>
+                <Col sm={12} md={6}>
                   <Form.Group>
                     <Form.Label className="small fw-semibold text-muted">
-                      Delivered in Range
+                      Fulfillment Status
                     </Form.Label>
-                    <div className="d-flex align-items-center gap-2">
-                      <Form.Control
-                        type="date"
-                        size="sm"
-                        value={ordersDeliveredStart}
-                        onChange={(e) =>
-                          setOrdersDeliveredStart(e.target.value)
-                        }
-                        className="font-monospace border-light-subtle rounded-2"
-                      />
-                      <span className="text-muted small">to</span>
-                      <Form.Control
-                        type="date"
-                        size="sm"
-                        value={ordersDeliveredEnd}
-                        onChange={(e) => setOrdersDeliveredEnd(e.target.value)}
-                        className="font-monospace border-light-subtle rounded-2"
-                      />
-                    </div>
-                  </Form.Group>
-                </Col>
-                <Col sm={12} md={4}>
-                  <Form.Group>
-                    <Form.Label className="small fw-semibold text-muted">
-                      Cancelled in Range
-                    </Form.Label>
-                    <div className="d-flex align-items-center gap-2">
-                      <Form.Control
-                        type="date"
-                        size="sm"
-                        value={ordersCancelledStart}
-                        onChange={(e) =>
-                          setOrdersCancelledStart(e.target.value)
-                        }
-                        className="font-monospace border-light-subtle rounded-2"
-                      />
-                      <span className="text-muted small">to</span>
-                      <Form.Control
-                        type="date"
-                        size="sm"
-                        value={ordersCancelledEnd}
-                        onChange={(e) => setOrdersCancelledEnd(e.target.value)}
-                        className="font-monospace border-light-subtle rounded-2"
-                      />
-                    </div>
+                    <Form.Select
+                      size="sm"
+                      value={ordersStatus}
+                      onChange={(e) => setOrdersStatus(e.target.value)}
+                      className="border-light-subtle rounded-2 font-medium text-secondary"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="in transit">In Transit</option>
+                      <option value="pending dispatch">Pending Dispatch</option>
+                      <option value="awaiting payment">Awaiting Payment</option>
+                      <option value="cancelled">Cancelled</option>
+                    </Form.Select>
                   </Form.Group>
                 </Col>
               </Row>
@@ -1876,7 +1881,7 @@ const Dash = () => {
               <div className="bg-white p-3.5 rounded-4 border shadow-sm text-center">
                 <h6 className="text-muted small mb-1">📅 Peak Order Days</h6>
                 <h5 className="fw-bold text-warning mb-0">
-                  Wednesday & Sunday
+                  {ordersLoading ? "..." : ordersPeakDays}
                 </h5>
               </div>
             </Col>
@@ -1886,7 +1891,7 @@ const Dash = () => {
                   ⏱️ Average Delivery Time
                 </h6>
                 <h5 className="fw-bold text-success mb-0">
-                  2.4 Days{" "}
+                  {ordersLoading ? "..." : `${ordersAvgDelivery} Days`}{" "}
                   <span className="text-muted text-xxs font-normal">
                     (In-range calculation)
                   </span>
@@ -1898,7 +1903,9 @@ const Dash = () => {
                 <h6 className="text-muted small mb-1">
                   📊 Fulfillment Target Ratio
                 </h6>
-                <h5 className="fw-bold text-dark mb-0">94% achieved</h5>
+                <h5 className="fw-bold text-dark mb-0">
+                  {ordersLoading ? "..." : `${ordersFulfillmentRatio}% achieved`}
+                </h5>
               </div>
             </Col>
           </Row>
@@ -1919,6 +1926,7 @@ const Dash = () => {
                   <thead className="table-dark border-bottom text-secondary small uppercase fw-semibold">
                     <tr>
                       <th className="py-3 px-4">Order ID</th>
+                      <th className="py-3 px-4">Customer</th>
                       <th className="py-3 px-4">Placed Date 📅</th>
                       <th className="py-3 px-4">Payment Date 📅</th>
                       <th className="py-3 px-4">Dispatch Date 📅</th>
@@ -1927,69 +1935,157 @@ const Dash = () => {
                     </tr>
                   </thead>
                   <tbody className="text-dark small fw-medium">
-                    {ordersMockTable.map((order, idx) => (
-                      <tr key={idx}>
-                        <td className="px-4 fw-bold font-monospace">
-                          {order.id}
-                        </td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {order.placed}
-                        </td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {order.payment}
-                        </td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {order.dispatch === "Pending" ? (
-                            <span className="text-warning">Pending</span>
-                          ) : (
-                            order.dispatch
-                          )}
-                        </td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {order.delivery === "Pending" ? (
-                            <span className="text-warning">Pending</span>
-                          ) : (
-                            order.delivery
-                          )}
-                        </td>
-                        <td className="px-4">
-                          {order.status === "Delivered" ? (
-                            <Badge
-                              bg="success-subtle"
-                              className="text-success border border-success-subtle rounded-2 px-2 py-1.5"
-                            >
-                              Delivered
-                            </Badge>
-                          ) : order.status === "In Transit" ||
-                            order.status === "Pending Dispatch" ? (
-                            <Badge
-                              bg="warning-subtle"
-                              className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5"
-                            >
-                              {order.status}
-                            </Badge>
-                          ) : order.status === "Cancelled" ? (
-                            <Badge
-                              bg="danger-subtle"
-                              className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5"
-                            >
-                              Cancelled
-                            </Badge>
-                          ) : (
-                            <Badge
-                              bg="secondary-subtle"
-                              className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5"
-                            >
-                              {order.status}
-                            </Badge>
-                          )}
+                    {ordersLoading ? (
+                      <tr>
+                        <td colSpan="7" className="text-center py-5">
+                          <div
+                            className="spinner-border spinner-border-sm text-primary me-2"
+                            role="status"
+                          />
+                          <span className="text-muted">
+                            Loading live orders...
+                          </span>
                         </td>
                       </tr>
-                    ))}
+                    ) : ordersError ? (
+                      <tr>
+                        <td
+                          colSpan="7"
+                          className="text-center py-5 text-danger fw-semibold"
+                        >
+                          ⚠ Error: {ordersError}
+                        </td>
+                      </tr>
+                    ) : ordersData.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="text-center py-5 text-muted">
+                          No orders found matching current filters.
+                        </td>
+                      </tr>
+                    ) : (
+                      ordersData.map((order, idx) => (
+                        <tr key={order.id || idx}>
+                          <td className="px-4 fw-bold font-monospace">
+                            {order.id}
+                          </td>
+                          <td className="px-4">
+                            <span className="fw-bold text-dark text-capitalize">
+                              {order.customer_name || "Unnamed"}
+                            </span>
+                            {order.customer_phone_number && (
+                              <div className="text-muted text-xxs font-monospace mt-0.5">
+                                {order.customer_phone_number}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 font-monospace text-secondary">
+                            {order.placed_date || "N/A"}
+                          </td>
+                          <td className="px-4 font-monospace text-secondary">
+                            {order.status?.toLowerCase() !== "awaiting payment" ? (
+                              order.placed_date || "N/A"
+                            ) : (
+                              <span className="text-warning">Pending</span>
+                            )}
+                          </td>
+                          <td className="px-4 font-monospace text-secondary">
+                            {order.dispatch_date || "Pending"}
+                          </td>
+                          <td className="px-4 font-monospace text-secondary">
+                            {order.expected_delivery_date || "Pending"}
+                          </td>
+                          <td className="px-4">
+                            {order.status?.toLowerCase() === "delivered" ? (
+                              <Badge
+                                bg="success-subtle"
+                                className="text-success border border-success-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                              >
+                                {order.status}
+                              </Badge>
+                            ) : order.status?.toLowerCase() === "in transit" ||
+                              order.status?.toLowerCase() === "pending dispatch" ? (
+                              <Badge
+                                bg="warning-subtle"
+                                className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                              >
+                                {order.status}
+                              </Badge>
+                            ) : order.status?.toLowerCase() === "cancelled" ? (
+                              <Badge
+                                bg="danger-subtle"
+                                className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                              >
+                                {order.status}
+                              </Badge>
+                            ) : (
+                              <Badge
+                                bg="secondary-subtle"
+                                className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                              >
+                                {order.status || "Unknown"}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </Table>
               </div>
             </Card.Body>
+            {ordersData.length > 0 && (
+              <Card.Footer className="bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 border-top">
+                <div className="d-flex align-items-center gap-2 small text-muted">
+                  <span>Show</span>
+                  <Form.Select
+                    size="sm"
+                    value={ordersLimit}
+                    onChange={(e) => setOrdersLimit(Number(e.target.value))}
+                    style={{ width: "75px" }}
+                    className="border-light-subtle rounded-2 font-monospace"
+                  >
+                    {[10, 20, 50, 100].map((lim) => (
+                      <option key={lim} value={lim}>
+                        {lim}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <span>
+                    records of <strong>{ordersTotalCount}</strong> found
+                  </span>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    disabled={ordersPage === 1 || ordersLoading}
+                    onClick={() =>
+                      setOrdersPage((prev) => Math.max(prev - 1, 1))
+                    }
+                  >
+                    ◀ Prev
+                  </Button>
+                  <span className="small fw-bold text-secondary font-monospace px-2">
+                    Page {ordersPage} of {ordersTotalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    disabled={ordersPage === ordersTotalPages || ordersLoading}
+                    onClick={() =>
+                      setOrdersPage((prev) =>
+                        Math.min(prev + 1, ordersTotalPages),
+                      )
+                    }
+                  >
+                    Next ▶
+                  </Button>
+                </div>
+              </Card.Footer>
+            )}
           </Card>
         </div>
       )}
