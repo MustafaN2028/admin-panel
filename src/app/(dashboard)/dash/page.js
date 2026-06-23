@@ -385,9 +385,10 @@ const Dash = () => {
   }, [activeTab, fetchDashboardSubscriptions]);
 
   // Tab 5 Payments Ledger live analytics states
-  const [paymentsStart, setPaymentsStart] = useState("");
-  const [paymentsEnd, setPaymentsEnd] = useState("");
-  const [paymentsStatus, setPaymentsStatus] = useState("");
+  const [paymentsStart, setPaymentsStart] = useState("2026-03-01");
+  const [paymentsEnd, setPaymentsEnd] = useState("2026-06-22");
+  const [paymentsStatus, setPaymentsStatus] = useState("captured");
+  const [isPaymentsInitial, setIsPaymentsInitial] = useState(true);
 
   const [paymentsData, setPaymentsData] = useState([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
@@ -404,11 +405,13 @@ const Dash = () => {
       const token =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const params = new URLSearchParams();
+      if (!isPaymentsInitial) {
+        if (paymentsStart) params.append("start_date", paymentsStart);
+        if (paymentsEnd) params.append("end_date", paymentsEnd);
+        if (paymentsStatus) params.append("status", paymentsStatus);
+      }
       params.append("page", paymentsPage);
       params.append("limit", paymentsLimit);
-      if (paymentsStart) params.append("start_date", paymentsStart);
-      if (paymentsEnd) params.append("end_date", paymentsEnd);
-      if (paymentsStatus) params.append("status", paymentsStatus);
 
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dashboard/payments?${params.toString()}`;
 
@@ -446,6 +449,7 @@ const Dash = () => {
     paymentsStart,
     paymentsEnd,
     paymentsStatus,
+    isPaymentsInitial,
   ]);
 
   // Reset page to 1 on filter changes
@@ -2252,7 +2256,10 @@ const Dash = () => {
                         type="date"
                         size="sm"
                         value={paymentsStart}
-                        onChange={(e) => setPaymentsStart(e.target.value)}
+                        onChange={(e) => {
+                          setPaymentsStart(e.target.value);
+                          setIsPaymentsInitial(false);
+                        }}
                         className="font-monospace border-light-subtle rounded-2"
                       />
                       <span className="text-muted small">to</span>
@@ -2260,7 +2267,10 @@ const Dash = () => {
                         type="date"
                         size="sm"
                         value={paymentsEnd}
-                        onChange={(e) => setPaymentsEnd(e.target.value)}
+                        onChange={(e) => {
+                          setPaymentsEnd(e.target.value);
+                          setIsPaymentsInitial(false);
+                        }}
                         className="font-monospace border-light-subtle rounded-2"
                       />
                     </div>
@@ -2274,7 +2284,10 @@ const Dash = () => {
                     <Form.Select
                       size="sm"
                       value={paymentsStatus}
-                      onChange={(e) => setPaymentsStatus(e.target.value)}
+                      onChange={(e) => {
+                        setPaymentsStatus(e.target.value);
+                        setIsPaymentsInitial(false);
+                      }}
                       className="border-light-subtle rounded-2 font-medium text-secondary"
                     >
                       <option value="">All Statuses</option>
