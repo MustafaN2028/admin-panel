@@ -1,6 +1,15 @@
 "use client";
-import { useState, useMemo } from "react";
-import { Button, Card, Row, Col, Form, Badge, Table, ProgressBar } from "react-bootstrap";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import {
+  Button,
+  Card,
+  Row,
+  Col,
+  Form,
+  Badge,
+  Table,
+  ProgressBar,
+} from "react-bootstrap";
 import {
   People,
   GraphUp,
@@ -21,7 +30,7 @@ import {
   CashStack,
   ArrowLeftRight,
   ClipboardData,
-  Speedometer2
+  Speedometer2,
 } from "react-bootstrap-icons";
 
 const Dash = () => {
@@ -38,17 +47,109 @@ const Dash = () => {
   const [overviewEnd, setOverviewEnd] = useState("2026-06-22");
 
   // Tab 2 Date values
-  const [usersSignupStart, setUsersSignupStart] = useState("2026-06-01");
-  const [usersSignupEnd, setUsersSignupEnd] = useState("2026-06-22");
-  const [usersLastLogin, setUsersLastLogin] = useState("2026-06-22");
-  const [usersSubStart, setUsersSubStart] = useState("2026-06-15");
+  const [usersSignupStart, setUsersSignupStart] = useState("");
+  const [usersSignupEnd, setUsersSignupEnd] = useState("");
+  const [usersLastLogin, setUsersLastLogin] = useState("");
+  const [usersSubStart, setUsersSubStart] = useState("");
+
+  // Live Dashboard Users states
+  const [usersData, setUsersData] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState(null);
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersLimit, setUsersLimit] = useState(20);
+  const [usersTotalPages, setUsersTotalPages] = useState(1);
+  const [usersTotalCount, setUsersTotalCount] = useState(0);
+
+  // Live Dashboard Users Summary stats states
+  const [usersJoinedSelected, setUsersJoinedSelected] = useState(48);
+  const [usersLastActiveSelected, setUsersLastActiveSelected] = useState(215);
+  const [usersTotalRangeRegs, setUsersTotalRangeRegs] = useState(156);
+
+  const fetchDashboardUsers = useCallback(async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const params = new URLSearchParams();
+      params.append("page", usersPage);
+      params.append("limit", usersLimit);
+      if (usersSignupStart)
+        params.append("signup_start_date", usersSignupStart);
+      if (usersSignupEnd) params.append("signup_end_date", usersSignupEnd);
+      if (usersLastLogin) params.append("last_active_date", usersLastLogin);
+      if (usersSubStart)
+        params.append("subscription_start_date", usersSubStart);
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dashboard/users?${params.toString()}`;
+
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user list.");
+      }
+
+      if (data.success) {
+        setUsersData(data.data || []);
+        if (data.summary) {
+          setUsersJoinedSelected(data.summary.users_joined_selected_dates ?? 0);
+          setUsersLastActiveSelected(
+            data.summary.users_last_active_selected_date ?? 0,
+          );
+          setUsersTotalRangeRegs(data.summary.total_range_registrations ?? 0);
+        }
+        if (data.pagination) {
+          setUsersTotalPages(data.pagination.pages || 1);
+          setUsersTotalCount(data.pagination.total || 0);
+        }
+      } else {
+        throw new Error(
+          data.message || "Request returned unsuccessful status.",
+        );
+      }
+    } catch (err) {
+      console.error("fetchDashboardUsers error:", err);
+      setUsersError(err.message || "An unexpected error occurred.");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [
+    usersPage,
+    usersLimit,
+    usersSignupStart,
+    usersSignupEnd,
+    usersLastLogin,
+    usersSubStart,
+  ]);
+
+  // Reset page to 1 on filter changes to prevent fetching out-of-bounds page indices
+  useEffect(() => {
+    setUsersPage(1);
+  }, [usersSignupStart, usersSignupEnd, usersLastLogin, usersSubStart]);
+
+  useEffect(() => {
+    if (activeTab === "users") {
+      fetchDashboardUsers();
+    }
+  }, [activeTab, fetchDashboardUsers]);
+  console.log(usersData, "UU");
 
   // Tab 4 Date values
   const [ordersPlacedStart, setOrdersPlacedStart] = useState("2026-06-01");
   const [ordersPlacedEnd, setOrdersPlacedEnd] = useState("2026-06-22");
-  const [ordersDeliveredStart, setOrdersDeliveredStart] = useState("2026-06-01");
+  const [ordersDeliveredStart, setOrdersDeliveredStart] =
+    useState("2026-06-01");
   const [ordersDeliveredEnd, setOrdersDeliveredEnd] = useState("2026-06-22");
-  const [ordersCancelledStart, setOrdersCancelledStart] = useState("2026-06-01");
+  const [ordersCancelledStart, setOrdersCancelledStart] =
+    useState("2026-06-01");
   const [ordersCancelledEnd, setOrdersCancelledEnd] = useState("2026-06-22");
 
   // Hardcoded date values for the designs
@@ -93,15 +194,7 @@ const Dash = () => {
     { label: "Jun 22", users: 38, revenue: 45.2 },
   ];
 
-  // Tab 2: User management static logs
-  const usersMockTable = [
-    { name: "Priya Sharma", joinDate: "2026-06-18", lastActive: "2026-06-22", status: "Active", orders: 12 },
-    { name: "Rohan Verma", joinDate: "2026-06-12", lastActive: "2026-06-21", status: "Active", orders: 8 },
-    { name: "Aarti Patel", joinDate: "2026-06-05", lastActive: "2026-06-19", status: "Cancelled", orders: 2 },
-    { name: "Amit Khanna", joinDate: "2026-05-24", lastActive: "2026-06-22", status: "Active", orders: 15 },
-    { name: "Sneha Reddy", joinDate: "2026-05-18", lastActive: "2026-06-10", status: "Expired", orders: 0 },
-    { name: "Karan Malhotra", joinDate: "2026-06-20", lastActive: "2026-06-22", status: "Active", orders: 1 },
-  ];
+  // Mock data cleaned - replaced with live API states
 
   // Tab 3: Subscription Analytics
   const subGrowthData = [
@@ -116,33 +209,113 @@ const Dash = () => {
 
   // Tab 4: Orders & Fulfillment Tracker
   const ordersMockTable = [
-    { id: "ORD-2026-8890", placed: "2026-06-18", payment: "2026-06-18", dispatch: "2026-06-19", delivery: "2026-06-21", status: "Delivered", amount: 1500 },
-    { id: "ORD-2026-8891", placed: "2026-06-20", payment: "2026-06-20", dispatch: "2026-06-21", delivery: "Pending", status: "In Transit", amount: 2200 },
-    { id: "ORD-2026-8892", placed: "2026-06-21", payment: "2026-06-21", dispatch: "Pending", delivery: "Pending", status: "Pending Dispatch", amount: 1250 },
-    { id: "ORD-2026-8893", placed: "2026-06-22", payment: "Pending", dispatch: "Pending", delivery: "Pending", status: "Awaiting Payment", amount: 3500 },
-    { id: "ORD-2026-8894", placed: "2026-06-15", payment: "2026-06-15", dispatch: "Cancelled", delivery: "Cancelled", status: "Cancelled", amount: 1800 },
+    {
+      id: "ORD-2026-8890",
+      placed: "2026-06-18",
+      payment: "2026-06-18",
+      dispatch: "2026-06-19",
+      delivery: "2026-06-21",
+      status: "Delivered",
+      amount: 1500,
+    },
+    {
+      id: "ORD-2026-8891",
+      placed: "2026-06-20",
+      payment: "2026-06-20",
+      dispatch: "2026-06-21",
+      delivery: "Pending",
+      status: "In Transit",
+      amount: 2200,
+    },
+    {
+      id: "ORD-2026-8892",
+      placed: "2026-06-21",
+      payment: "2026-06-21",
+      dispatch: "Pending",
+      delivery: "Pending",
+      status: "Pending Dispatch",
+      amount: 1250,
+    },
+    {
+      id: "ORD-2026-8893",
+      placed: "2026-06-22",
+      payment: "Pending",
+      dispatch: "Pending",
+      delivery: "Pending",
+      status: "Awaiting Payment",
+      amount: 3500,
+    },
+    {
+      id: "ORD-2026-8894",
+      placed: "2026-06-15",
+      payment: "2026-06-15",
+      dispatch: "Cancelled",
+      delivery: "Cancelled",
+      status: "Cancelled",
+      amount: 1800,
+    },
   ];
 
   // Tab 5: Payments Ledger Logs
   const paymentsMockTable = [
-    { id: "TXN-9821-A", paymentDate: "2026-06-22", linkedDate: "2026-06-22", refundDate: "N/A", amount: 2999, status: "Success" },
-    { id: "TXN-9822-B", paymentDate: "2026-06-22", linkedDate: "2026-06-22", refundDate: "N/A", amount: 1500, status: "Success" },
-    { id: "TXN-9823-C", paymentDate: "2026-06-21", linkedDate: "2026-06-21", refundDate: "N/A", amount: 4500, status: "Failed" },
-    { id: "TXN-9824-D", paymentDate: "2026-06-20", linkedDate: "2026-06-20", refundDate: "2026-06-21", amount: 2500, status: "Refunded" },
-    { id: "TXN-9825-E", paymentDate: "2026-06-19", linkedDate: "2026-06-19", refundDate: "N/A", amount: 2999, status: "Success" },
+    {
+      id: "TXN-9821-A",
+      paymentDate: "2026-06-22",
+      linkedDate: "2026-06-22",
+      refundDate: "N/A",
+      amount: 2999,
+      status: "Success",
+    },
+    {
+      id: "TXN-9822-B",
+      paymentDate: "2026-06-22",
+      linkedDate: "2026-06-22",
+      refundDate: "N/A",
+      amount: 1500,
+      status: "Success",
+    },
+    {
+      id: "TXN-9823-C",
+      paymentDate: "2026-06-21",
+      linkedDate: "2026-06-21",
+      refundDate: "N/A",
+      amount: 4500,
+      status: "Failed",
+    },
+    {
+      id: "TXN-9824-D",
+      paymentDate: "2026-06-20",
+      linkedDate: "2026-06-20",
+      refundDate: "2026-06-21",
+      amount: 2500,
+      status: "Refunded",
+    },
+    {
+      id: "TXN-9825-E",
+      paymentDate: "2026-06-19",
+      linkedDate: "2026-06-19",
+      refundDate: "N/A",
+      amount: 2999,
+      status: "Success",
+    },
   ];
 
   return (
     <div className="container-fluid py-3 px-md-4 bg-light min-vh-100">
-      
       {/* 1. TOP TITLE HEADER */}
       <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-2">
         <div>
           <h2 className="fw-bold text-dark mb-1">Aartava System Analytics</h2>
-          <p className="text-muted small mb-0">High-fidelity dashboard interface prototype covering metrics aggregates.</p>
+          <p className="text-muted small mb-0">
+            High-fidelity dashboard interface prototype covering metrics
+            aggregates.
+          </p>
         </div>
         <div className="d-flex align-items-center gap-2">
-          <Badge bg="success-subtle" className="text-success border border-success-subtle px-2 py-1.5 rounded-2">
+          <Badge
+            bg="success-subtle"
+            className="text-success border border-success-subtle px-2 py-1.5 rounded-2"
+          >
             Design Mode: Enabled
           </Badge>
           <Badge bg="dark" className="px-2 py-1.5 rounded-2">
@@ -156,9 +329,17 @@ const Dash = () => {
         <Card.Body className="p-2 bg-white">
           <div className="d-flex flex-wrap gap-2">
             {[
-              { id: "overview", label: "📊 Overview Dashboard", color: "primary" },
+              {
+                id: "overview",
+                label: "📊 Overview Dashboard",
+                color: "primary",
+              },
               { id: "users", label: "👥 User Management", color: "info" },
-              { id: "subscriptions", label: "💳 Subscriptions Hub", color: "success" },
+              {
+                id: "subscriptions",
+                label: "💳 Subscriptions Hub",
+                color: "success",
+              },
               { id: "orders", label: "📦 Orders & Delivery", color: "warning" },
               { id: "payments", label: "💰 Payments Ledger", color: "danger" },
             ].map((tab) => (
@@ -189,8 +370,15 @@ const Dash = () => {
             <Card.Body className="p-3 bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
               <div className="d-flex align-items-center gap-2">
                 <Calendar3 className="text-primary" size={18} />
-                <span className="fw-semibold text-secondary small">Filter Scope:</span>
-                <Badge bg="primary-subtle" className="text-primary px-3 py-1.5 rounded-2">Last 7 Days (Jun 16 - Jun 22)</Badge>
+                <span className="fw-semibold text-secondary small">
+                  Filter Scope:
+                </span>
+                <Badge
+                  bg="primary-subtle"
+                  className="text-primary px-3 py-1.5 rounded-2"
+                >
+                  Last 7 Days (Jun 16 - Jun 22)
+                </Badge>
               </div>
               <div className="d-flex align-items-center gap-2">
                 <Form.Control
@@ -208,7 +396,14 @@ const Dash = () => {
                   onChange={(e) => setOverviewEnd(e.target.value)}
                   className="font-monospace border-light-subtle rounded-2"
                 />
-                <Button variant="outline-dark" size="sm" className="rounded-2" disabled>Filter</Button>
+                <Button
+                  variant="outline-dark"
+                  size="sm"
+                  className="rounded-2"
+                  disabled
+                >
+                  Filter
+                </Button>
               </div>
             </Card.Body>
           </Card>
@@ -221,7 +416,9 @@ const Dash = () => {
                 <Card.Body className="d-flex flex-column justify-content-between p-3.5">
                   <div className="d-flex justify-content-between">
                     <div>
-                      <span className="text-muted small fw-semibold text-uppercase tracking-wider">👥 New Users</span>
+                      <span className="text-muted small fw-semibold text-uppercase tracking-wider">
+                        👥 New Users
+                      </span>
                       <h3 className="fw-bold mt-1 mb-0 font-monospace">156</h3>
                     </div>
                     <div className="kpi-icon-bg bg-primary bg-opacity-10 text-primary p-2.5 rounded-3">
@@ -245,7 +442,9 @@ const Dash = () => {
                 <Card.Body className="d-flex flex-column justify-content-between p-3.5">
                   <div className="d-flex justify-content-between">
                     <div>
-                      <span className="text-muted small fw-semibold text-uppercase tracking-wider">🆕 Daily Active (DAU)</span>
+                      <span className="text-muted small fw-semibold text-uppercase tracking-wider">
+                        🆕 Daily Active (DAU)
+                      </span>
                       <div className="d-flex align-items-baseline gap-2 mt-1">
                         <h3 className="fw-bold mb-0 font-monospace">842</h3>
                         <span className="live-pulse-container">
@@ -262,7 +461,9 @@ const Dash = () => {
                     <span className="text-success small fw-bold d-flex align-items-center gap-0.5">
                       <ArrowUpRight size={12} /> +4.2%
                     </span>
-                    <span className="text-muted small">active sessions today</span>
+                    <span className="text-muted small">
+                      active sessions today
+                    </span>
                   </div>
                   <div className="accent-bar bg-danger" />
                 </Card.Body>
@@ -275,8 +476,12 @@ const Dash = () => {
                 <Card.Body className="d-flex flex-column justify-content-between p-3.5">
                   <div className="d-flex justify-content-between">
                     <div>
-                      <span className="text-muted small fw-semibold text-uppercase tracking-wider">📈 Weekly Active (WAU)</span>
-                      <h3 className="fw-bold mt-1 mb-0 font-monospace">4,520</h3>
+                      <span className="text-muted small fw-semibold text-uppercase tracking-wider">
+                        📈 Weekly Active (WAU)
+                      </span>
+                      <h3 className="fw-bold mt-1 mb-0 font-monospace">
+                        4,520
+                      </h3>
                     </div>
                     <div className="kpi-icon-bg bg-info bg-opacity-10 text-info p-2.5 rounded-3">
                       <GraphUp size={22} />
@@ -288,7 +493,10 @@ const Dash = () => {
                       <strong>18.6%</strong>
                     </div>
                     <div className="progress-bar-thin bg-light rounded-pill">
-                      <div className="progress-bar-fill bg-info rounded-pill" style={{ width: "18.6%" }} />
+                      <div
+                        className="progress-bar-fill bg-info rounded-pill"
+                        style={{ width: "18.6%" }}
+                      />
                     </div>
                   </div>
                   <div className="accent-bar bg-info" />
@@ -302,8 +510,12 @@ const Dash = () => {
                 <Card.Body className="d-flex flex-column justify-content-between p-3.5">
                   <div className="d-flex justify-content-between">
                     <div>
-                      <span className="text-muted small fw-semibold text-uppercase tracking-wider">💰 Total Income</span>
-                      <h3 className="fw-bold mt-1 mb-0 font-monospace text-emerald">{formatCurrency(283700)}</h3>
+                      <span className="text-muted small fw-semibold text-uppercase tracking-wider">
+                        💰 Total Income
+                      </span>
+                      <h3 className="fw-bold mt-1 mb-0 font-monospace text-emerald">
+                        {formatCurrency(283700)}
+                      </h3>
                     </div>
                     <div className="kpi-icon-bg bg-success bg-opacity-10 text-success p-2.5 rounded-3">
                       <CurrencyRupee size={22} />
@@ -329,41 +541,67 @@ const Dash = () => {
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
                   <div className="d-flex align-items-center gap-2">
                     <CreditCard className="text-primary" size={20} />
-                    <h5 className="m-0 fw-bold text-dark">Subscriptions Scope</h5>
+                    <h5 className="m-0 fw-bold text-dark">
+                      Subscriptions Scope
+                    </h5>
                   </div>
                 </Card.Header>
                 <Card.Body className="p-4">
                   <div className="d-flex flex-column gap-3 w-100">
                     <div className="d-flex align-items-center justify-content-between bg-light p-2.5 rounded-3 border-start border-3 border-primary shadow-xs">
                       <div>
-                        <h6 className="mb-0 fw-bold text-dark small">Active (as of selected date)</h6>
-                        <span className="text-muted text-xxs">Total ongoing sub-base</span>
+                        <h6 className="mb-0 fw-bold text-dark small">
+                          Active (as of selected date)
+                        </h6>
+                        <span className="text-muted text-xxs">
+                          Total ongoing sub-base
+                        </span>
                       </div>
-                      <span className="fw-bold font-monospace text-primary h5 mb-0">874</span>
+                      <span className="fw-bold font-monospace text-primary h5 mb-0">
+                        874
+                      </span>
                     </div>
 
                     <div className="d-flex align-items-center justify-content-between bg-light p-2.5 rounded-3 border-start border-3 border-success shadow-xs">
                       <div>
-                        <h6 className="mb-0 fw-bold text-dark small">Started (in date range)</h6>
-                        <span className="text-muted text-xxs">New purchases conversion</span>
+                        <h6 className="mb-0 fw-bold text-dark small">
+                          Started (in date range)
+                        </h6>
+                        <span className="text-muted text-xxs">
+                          New purchases conversion
+                        </span>
                       </div>
-                      <span className="fw-bold font-monospace text-success h5 mb-0">+142</span>
+                      <span className="fw-bold font-monospace text-success h5 mb-0">
+                        +142
+                      </span>
                     </div>
 
                     <div className="d-flex align-items-center justify-content-between bg-light p-2.5 rounded-3 border-start border-3 border-danger shadow-xs">
                       <div>
-                        <h6 className="mb-0 fw-bold text-dark small">Cancelled (in date range)</h6>
-                        <span className="text-muted text-xxs">Unsubscribed/refunded plans</span>
+                        <h6 className="mb-0 fw-bold text-dark small">
+                          Cancelled (in date range)
+                        </h6>
+                        <span className="text-muted text-xxs">
+                          Unsubscribed/refunded plans
+                        </span>
                       </div>
-                      <span className="fw-bold font-monospace text-danger h5 mb-0">-24</span>
+                      <span className="fw-bold font-monospace text-danger h5 mb-0">
+                        -24
+                      </span>
                     </div>
 
                     <div className="d-flex align-items-center justify-content-between bg-light p-2.5 rounded-3 border-start border-3 border-warning shadow-xs">
                       <div>
-                        <h6 className="mb-0 fw-bold text-dark small">Renewed (in date range)</h6>
-                        <span className="text-muted text-xxs">Cycle renewals complete</span>
+                        <h6 className="mb-0 fw-bold text-dark small">
+                          Renewed (in date range)
+                        </h6>
+                        <span className="text-muted text-xxs">
+                          Cycle renewals complete
+                        </span>
                       </div>
-                      <span className="fw-bold font-monospace text-warning h5 mb-0">+92</span>
+                      <span className="fw-bold font-monospace text-warning h5 mb-0">
+                        +92
+                      </span>
                     </div>
                   </div>
                 </Card.Body>
@@ -376,39 +614,77 @@ const Dash = () => {
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center gap-2">
                     <CartCheck className="text-warning" size={20} />
-                    <h5 className="m-0 fw-bold text-dark">📦 Orders Overview</h5>
+                    <h5 className="m-0 fw-bold text-dark">
+                      📦 Orders Overview
+                    </h5>
                   </div>
-                  <span className="text-muted small">Total: <strong>1,280</strong> placed</span>
+                  <span className="text-muted small">
+                    Total: <strong>1,280</strong> placed
+                  </span>
                 </Card.Header>
                 <Card.Body className="p-4 d-flex flex-column justify-content-center">
                   <div className="mb-4">
-                    <h6 className="text-muted small fw-semibold text-uppercase mb-2">Fulfillment Distribution</h6>
-                    <div className="progress rounded-4 shadow-xs" style={{ height: "30px" }}>
-                      <div className="progress-bar bg-success" style={{ width: "88%" }}>Delivered (88%)</div>
-                      <div className="progress-bar bg-warning text-dark" style={{ width: "12%" }}>Pending (12%)</div>
+                    <h6 className="text-muted small fw-semibold text-uppercase mb-2">
+                      Fulfillment Distribution
+                    </h6>
+                    <div
+                      className="progress rounded-4 shadow-xs"
+                      style={{ height: "30px" }}
+                    >
+                      <div
+                        className="progress-bar bg-success"
+                        style={{ width: "88%" }}
+                      >
+                        Delivered (88%)
+                      </div>
+                      <div
+                        className="progress-bar bg-warning text-dark"
+                        style={{ width: "12%" }}
+                      >
+                        Pending (12%)
+                      </div>
                     </div>
                   </div>
 
                   <Row className="g-3">
                     <Col xs={4}>
                       <div className="p-3 bg-light rounded-3 d-flex flex-column align-items-center text-center border">
-                        <CheckCircleFill size={20} className="text-success mb-1.5" />
-                        <h6 className="mb-0.5 text-secondary small">Delivered</h6>
-                        <h5 className="fw-bold text-dark mb-0 font-monospace">1,126</h5>
+                        <CheckCircleFill
+                          size={20}
+                          className="text-success mb-1.5"
+                        />
+                        <h6 className="mb-0.5 text-secondary small">
+                          Delivered
+                        </h6>
+                        <h5 className="fw-bold text-dark mb-0 font-monospace">
+                          1,126
+                        </h5>
                       </div>
                     </Col>
                     <Col xs={4}>
                       <div className="p-3 bg-light rounded-3 d-flex flex-column align-items-center text-center border">
-                        <HourglassSplit size={20} className="text-warning mb-1.5" />
+                        <HourglassSplit
+                          size={20}
+                          className="text-warning mb-1.5"
+                        />
                         <h6 className="mb-0.5 text-secondary small">Pending</h6>
-                        <h5 className="fw-bold text-dark mb-0 font-monospace">154</h5>
+                        <h5 className="fw-bold text-dark mb-0 font-monospace">
+                          154
+                        </h5>
                       </div>
                     </Col>
                     <Col xs={4}>
                       <div className="p-3 bg-light rounded-3 d-flex flex-column align-items-center text-center border">
-                        <ClipboardData size={20} className="text-primary mb-1.5" />
-                        <h6 className="mb-0.5 text-secondary small">Fulfillment</h6>
-                        <h5 className="fw-bold text-dark mb-0 font-monospace">88%</h5>
+                        <ClipboardData
+                          size={20}
+                          className="text-primary mb-1.5"
+                        />
+                        <h6 className="mb-0.5 text-secondary small">
+                          Fulfillment
+                        </h6>
+                        <h5 className="fw-bold text-dark mb-0 font-monospace">
+                          88%
+                        </h5>
                       </div>
                     </Col>
                   </Row>
@@ -424,18 +700,49 @@ const Dash = () => {
               <Card className="border-0 shadow-sm rounded-4 h-100 overflow-hidden position-relative">
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                   <div>
-                    <h5 className="m-0 fw-bold text-dark">💰 Daily Revenue Breakdown</h5>
-                    <span className="text-muted small">Daily revenue collections in INR</span>
+                    <h5 className="m-0 fw-bold text-dark">
+                      💰 Daily Revenue Breakdown
+                    </h5>
+                    <span className="text-muted small">
+                      Daily revenue collections in INR
+                    </span>
                   </div>
-                  <Badge bg="success-subtle" className="text-success border border-success-subtle">Revenue (INR)</Badge>
+                  <Badge
+                    bg="success-subtle"
+                    className="text-success border border-success-subtle"
+                  >
+                    Revenue (INR)
+                  </Badge>
                 </Card.Header>
                 <Card.Body className="p-4 position-relative">
-                  <div className="chart-container-inner" style={{ minHeight: "240px" }}>
-                    <svg width="100%" height="220" viewBox="0 0 500 220" className="overflow-visible">
+                  <div
+                    className="chart-container-inner"
+                    style={{ minHeight: "240px" }}
+                  >
+                    <svg
+                      width="100%"
+                      height="220"
+                      viewBox="0 0 500 220"
+                      className="overflow-visible"
+                    >
                       <defs>
-                        <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                        <linearGradient
+                          id="revGrad"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#10b981"
+                            stopOpacity="0.3"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#10b981"
+                            stopOpacity="0.0"
+                          />
                         </linearGradient>
                       </defs>
 
@@ -487,18 +794,77 @@ const Dash = () => {
                           strokeWidth="1.5"
                           onMouseEnter={() => setHoveredIdx(i)}
                           onMouseLeave={() => setHoveredIdx(null)}
-                          style={{ cursor: "pointer", transition: "all 0.15s ease" }}
+                          style={{
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
                         />
                       ))}
 
                       {/* Labels */}
-                      <text x="45" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 16</text>
-                      <text x="117" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 17</text>
-                      <text x="190" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 18</text>
-                      <text x="262" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 19</text>
-                      <text x="335" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 20</text>
-                      <text x="407" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 21</text>
-                      <text x="480" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 22</text>
+                      <text
+                        x="45"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 16
+                      </text>
+                      <text
+                        x="117"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 17
+                      </text>
+                      <text
+                        x="190"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 18
+                      </text>
+                      <text
+                        x="262"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 19
+                      </text>
+                      <text
+                        x="335"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 20
+                      </text>
+                      <text
+                        x="407"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 21
+                      </text>
+                      <text
+                        x="480"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 22
+                      </text>
                     </svg>
 
                     {/* Tooltip Overlay */}
@@ -506,14 +872,22 @@ const Dash = () => {
                       <div
                         className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
                         style={{
-                          left: `${(overviewRevenueBreakdown[hoveredIdx].label === "Jun 16" ? 15 : hoveredIdx * 15 + 10)}%`,
+                          left: `${overviewRevenueBreakdown[hoveredIdx].label === "Jun 16" ? 15 : hoveredIdx * 15 + 10}%`,
                           top: "30px",
                           zIndex: 10,
                         }}
                       >
-                        <div className="text-secondary small fw-bold">{overviewRevenueBreakdown[hoveredIdx].label}</div>
-                        <div className="fw-bold font-monospace text-emerald">{formatCurrency(overviewRevenueBreakdown[hoveredIdx].revenue)}</div>
-                        <div className="text-light small text-xxs font-monospace">Orders: {overviewRevenueBreakdown[hoveredIdx].orders}</div>
+                        <div className="text-secondary small fw-bold">
+                          {overviewRevenueBreakdown[hoveredIdx].label}
+                        </div>
+                        <div className="fw-bold font-monospace text-emerald">
+                          {formatCurrency(
+                            overviewRevenueBreakdown[hoveredIdx].revenue,
+                          )}
+                        </div>
+                        <div className="text-light small text-xxs font-monospace">
+                          Orders: {overviewRevenueBreakdown[hoveredIdx].orders}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -526,17 +900,33 @@ const Dash = () => {
               <Card className="border-0 shadow-sm rounded-4 h-100 overflow-hidden position-relative">
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                   <div>
-                    <h5 className="m-0 fw-bold text-dark">📊 Users & Revenue Trend</h5>
-                    <span className="text-muted small">Registrations & Gross collections correlated</span>
+                    <h5 className="m-0 fw-bold text-dark">
+                      📊 Users & Revenue Trend
+                    </h5>
+                    <span className="text-muted small">
+                      Registrations & Gross collections correlated
+                    </span>
                   </div>
                   <div className="d-flex gap-2">
-                    <span className="badge-legend bg-primary-subtle text-primary border border-primary-subtle px-1.5 py-0.5 rounded text-xxs">Users</span>
-                    <span className="badge-legend bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5 rounded text-xxs">Revenue (k)</span>
+                    <span className="badge-legend bg-primary-subtle text-primary border border-primary-subtle px-1.5 py-0.5 rounded text-xxs">
+                      Users
+                    </span>
+                    <span className="badge-legend bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5 rounded text-xxs">
+                      Revenue (k)
+                    </span>
                   </div>
                 </Card.Header>
                 <Card.Body className="p-4 position-relative">
-                  <div className="chart-container-inner" style={{ minHeight: "240px" }}>
-                    <svg width="100%" height="220" viewBox="0 0 500 220" className="overflow-visible">
+                  <div
+                    className="chart-container-inner"
+                    style={{ minHeight: "240px" }}
+                  >
+                    <svg
+                      width="100%"
+                      height="220"
+                      viewBox="0 0 500 220"
+                      className="overflow-visible"
+                    >
                       {/* Grid Lines */}
                       {[0, 1, 2, 3].map((g) => (
                         <line
@@ -606,13 +996,69 @@ const Dash = () => {
                       ))}
 
                       {/* Labels */}
-                      <text x="45" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 16</text>
-                      <text x="117" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 17</text>
-                      <text x="190" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 18</text>
-                      <text x="262" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 19</text>
-                      <text x="335" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 20</text>
-                      <text x="407" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 21</text>
-                      <text x="480" y="192" textAnchor="middle" fontSize="10" fill="#9ca3af">Jun 22</text>
+                      <text
+                        x="45"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 16
+                      </text>
+                      <text
+                        x="117"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 17
+                      </text>
+                      <text
+                        x="190"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 18
+                      </text>
+                      <text
+                        x="262"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 19
+                      </text>
+                      <text
+                        x="335"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 20
+                      </text>
+                      <text
+                        x="407"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 21
+                      </text>
+                      <text
+                        x="480"
+                        y="192"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#9ca3af"
+                      >
+                        Jun 22
+                      </text>
                     </svg>
 
                     {/* Trend Tooltip */}
@@ -620,14 +1066,23 @@ const Dash = () => {
                       <div
                         className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
                         style={{
-                          left: `${(trendData[hoveredTrendIdx].label === "Jun 16" ? 15 : hoveredTrendIdx * 15 + 10)}%`,
+                          left: `${trendData[hoveredTrendIdx].label === "Jun 16" ? 15 : hoveredTrendIdx * 15 + 10}%`,
                           top: "20px",
                           zIndex: 10,
                         }}
                       >
-                        <div className="text-secondary small fw-bold">{trendData[hoveredTrendIdx].label}</div>
-                        <div className="text-primary small font-monospace">👥 New Users: {trendData[hoveredTrendIdx].users}</div>
-                        <div className="text-emerald small font-monospace">💰 Income: {formatCurrency(trendData[hoveredTrendIdx].revenue * 1000)}</div>
+                        <div className="text-secondary small fw-bold">
+                          {trendData[hoveredTrendIdx].label}
+                        </div>
+                        <div className="text-primary small font-monospace">
+                          👥 New Users: {trendData[hoveredTrendIdx].users}
+                        </div>
+                        <div className="text-emerald small font-monospace">
+                          💰 Income:{" "}
+                          {formatCurrency(
+                            trendData[hoveredTrendIdx].revenue * 1000,
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -650,7 +1105,9 @@ const Dash = () => {
               <Row className="g-3">
                 <Col sm={12} md={4}>
                   <Form.Group>
-                    <Form.Label className="small fw-semibold text-muted">Signup Date Range</Form.Label>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Signup Date Range
+                    </Form.Label>
                     <div className="d-flex align-items-center gap-2">
                       <Form.Control
                         type="date"
@@ -672,7 +1129,9 @@ const Dash = () => {
                 </Col>
                 <Col sm={12} md={4}>
                   <Form.Group>
-                    <Form.Label className="small fw-semibold text-muted">Last Login Date</Form.Label>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Last Login Date
+                    </Form.Label>
                     <Form.Control
                       type="date"
                       size="sm"
@@ -684,7 +1143,9 @@ const Dash = () => {
                 </Col>
                 <Col sm={12} md={4}>
                   <Form.Group>
-                    <Form.Label className="small fw-semibold text-muted">Subscription Start Date</Form.Label>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Subscription Start Date
+                    </Form.Label>
                     <Form.Control
                       type="date"
                       size="sm"
@@ -702,20 +1163,32 @@ const Dash = () => {
           <Row className="g-3 mb-4">
             <Col xs={12} sm={4}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
-                <h6 className="text-muted small mb-1">Users Joined (Selected Dates)</h6>
-                <h4 className="fw-bold text-primary font-monospace mb-0">48</h4>
+                <h6 className="text-muted small mb-1">
+                  Users Joined (Selected Dates)
+                </h6>
+                <h4 className="fw-bold text-primary font-monospace mb-0">
+                  {usersJoinedSelected}
+                </h4>
               </div>
             </Col>
             <Col xs={12} sm={4}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
-                <h6 className="text-muted small mb-1">Users Last Active (by selected date)</h6>
-                <h4 className="fw-bold text-success font-monospace mb-0">215</h4>
+                <h6 className="text-muted small mb-1">
+                  Users Last Active (by selected date)
+                </h6>
+                <h4 className="fw-bold text-success font-monospace mb-0">
+                  {usersLastActiveSelected}
+                </h4>
               </div>
             </Col>
             <Col xs={12} sm={4}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
-                <h6 className="text-muted small mb-1">Total Range Registrations</h6>
-                <h4 className="fw-bold text-dark font-monospace mb-0">156</h4>
+                <h6 className="text-muted small mb-1">
+                  Total Range Registrations
+                </h6>
+                <h4 className="fw-bold text-dark font-monospace mb-0">
+                  {usersTotalRangeRegs}
+                </h4>
               </div>
             </Col>
           </Row>
@@ -735,29 +1208,149 @@ const Dash = () => {
                     </tr>
                   </thead>
                   <tbody className="text-dark small fw-medium">
-                    {usersMockTable.map((user, idx) => (
-                      <tr key={idx}>
-                        <td className="px-4">
-                          <span className="fw-bold text-dark text-capitalize">{user.name}</span>
+                    {usersLoading ? (
+                      <tr>
+                        <td colSpan="5" className="text-center py-5">
+                          <div
+                            className="spinner-border spinner-border-sm text-primary me-2"
+                            role="status"
+                          />
+                          <span className="text-muted">
+                            Loading live directory...
+                          </span>
                         </td>
-                        <td className="px-4 font-monospace text-secondary">{user.joinDate}</td>
-                        <td className="px-4 font-monospace text-secondary">{user.lastActive}</td>
-                        <td className="px-4">
-                          {user.status === "Active" ? (
-                            <Badge bg="success-subtle" className="text-success border border-success-subtle rounded-2 px-2 py-1.5">Active</Badge>
-                          ) : user.status === "Cancelled" ? (
-                            <Badge bg="danger-subtle" className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5">Cancelled</Badge>
-                          ) : (
-                            <Badge bg="warning-subtle" className="text-warning border border-warning-subtle rounded-2 px-2 py-1.5">Expired</Badge>
-                          )}
-                        </td>
-                        <td className="px-4 text-center font-monospace fw-bold">{user.orders}</td>
                       </tr>
-                    ))}
+                    ) : usersError ? (
+                      <tr>
+                        <td
+                          colSpan="5"
+                          className="text-center py-5 text-danger fw-semibold"
+                        >
+                          ⚠ Error: {usersError}
+                        </td>
+                      </tr>
+                    ) : usersData.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center py-5 text-muted">
+                          No users found matching current filters.
+                        </td>
+                      </tr>
+                    ) : (
+                      usersData.map((user, idx) => (
+                        <tr key={user.id || idx}>
+                          <td className="px-4">
+                            <span className="fw-bold text-dark text-capitalize">
+                              {user.name || "Unnamed User"}
+                            </span>
+                            {user.phone_number && (
+                              <div className="text-muted text-xxs font-monospace mt-0.5">
+                                {user.phone_number}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 font-monospace text-secondary">
+                            {user.join_date || "N/A"}
+                          </td>
+                          <td className="px-4 font-monospace text-secondary">
+                            {user.last_active_date || "N/A"}
+                          </td>
+                          <td className="px-4">
+                            {user.subscription_status?.toLowerCase() ===
+                            "active" ? (
+                              <Badge
+                                bg="success-subtle"
+                                className="text-success border border-success-subtle rounded-2 px-2 py-1.5"
+                              >
+                                Active
+                              </Badge>
+                            ) : user.subscription_status?.toLowerCase() ===
+                              "cancelled" ? (
+                              <Badge
+                                bg="danger-subtle"
+                                className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5"
+                              >
+                                Cancelled
+                              </Badge>
+                            ) : user.subscription_status?.toLowerCase() ===
+                              "expired" ? (
+                              <Badge
+                                bg="warning-subtle"
+                                className="text-warning border border-warning-subtle rounded-2 px-2 py-1.5"
+                              >
+                                Expired
+                              </Badge>
+                            ) : (
+                              <Badge
+                                bg="secondary-subtle"
+                                className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5"
+                              >
+                                Inactive
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-4 text-center font-monospace fw-bold">
+                            {user.total_orders ?? 0}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </Table>
               </div>
             </Card.Body>
+            {usersData.length > 0 && (
+              <Card.Footer className="bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 border-top">
+                <div className="d-flex align-items-center gap-2 small text-muted">
+                  <span>Show</span>
+                  <Form.Select
+                    size="sm"
+                    value={usersLimit}
+                    onChange={(e) => setUsersLimit(Number(e.target.value))}
+                    style={{ width: "75px" }}
+                    className="border-light-subtle rounded-2 font-monospace"
+                  >
+                    {[10, 20, 50, 100].map((lim) => (
+                      <option key={lim} value={lim}>
+                        {lim}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <span>
+                    records of <strong>{usersTotalCount}</strong> found
+                  </span>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    disabled={usersPage === 1 || usersLoading}
+                    onClick={() =>
+                      setUsersPage((prev) => Math.max(prev - 1, 1))
+                    }
+                  >
+                    ◀ Prev
+                  </Button>
+                  <span className="small fw-bold text-secondary font-monospace px-2">
+                    Page {usersPage} of {usersTotalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    disabled={usersPage === usersTotalPages || usersLoading}
+                    onClick={() =>
+                      setUsersPage((prev) =>
+                        Math.min(prev + 1, usersTotalPages),
+                      )
+                    }
+                  >
+                    Next ▶
+                  </Button>
+                </div>
+              </Card.Footer>
+            )}
           </Card>
         </div>
       )}
@@ -771,26 +1364,42 @@ const Dash = () => {
           <Row className="g-3 mb-4">
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm">
-                <span className="text-muted small fw-semibold">Started in Range</span>
-                <h4 className="fw-bold text-primary font-monospace mt-1 mb-0">+142</h4>
+                <span className="text-muted small fw-semibold">
+                  Started in Range
+                </span>
+                <h4 className="fw-bold text-primary font-monospace mt-1 mb-0">
+                  +142
+                </h4>
               </div>
             </Col>
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm">
-                <span className="text-muted small fw-semibold">Cancelled in Range</span>
-                <h4 className="fw-bold text-danger font-monospace mt-1 mb-0">-24</h4>
+                <span className="text-muted small fw-semibold">
+                  Cancelled in Range
+                </span>
+                <h4 className="fw-bold text-danger font-monospace mt-1 mb-0">
+                  -24
+                </h4>
               </div>
             </Col>
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm">
-                <span className="text-muted small fw-semibold">Renewed in Range</span>
-                <h4 className="fw-bold text-success font-monospace mt-1 mb-0">+92</h4>
+                <span className="text-muted small fw-semibold">
+                  Renewed in Range
+                </span>
+                <h4 className="fw-bold text-success font-monospace mt-1 mb-0">
+                  +92
+                </h4>
               </div>
             </Col>
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm">
-                <span className="text-muted small fw-semibold">Active Subscriptions (Today)</span>
-                <h4 className="fw-bold text-dark font-monospace mt-1 mb-0">874</h4>
+                <span className="text-muted small fw-semibold">
+                  Active Subscriptions (Today)
+                </span>
+                <h4 className="fw-bold text-dark font-monospace mt-1 mb-0">
+                  874
+                </h4>
               </div>
             </Col>
           </Row>
@@ -802,20 +1411,44 @@ const Dash = () => {
               <Card className="border-0 shadow-sm rounded-4 h-100 overflow-hidden position-relative">
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                   <div>
-                    <h5 className="m-0 fw-bold text-dark">📈 Daily Subscription Growth & Cancellations</h5>
-                    <span className="text-muted small">Subscription changes day-by-day</span>
+                    <h5 className="m-0 fw-bold text-dark">
+                      📈 Daily Subscription Growth & Cancellations
+                    </h5>
+                    <span className="text-muted small">
+                      Subscription changes day-by-day
+                    </span>
                   </div>
                   <div className="d-flex gap-2">
-                    <span className="badge-legend bg-indigo-subtle text-indigo border border-indigo-subtle px-1.5 py-0.5 rounded text-xxs">Signups</span>
-                    <span className="badge-legend bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5 rounded text-xxs">Cancellations</span>
+                    <span className="badge-legend bg-indigo-subtle text-indigo border border-indigo-subtle px-1.5 py-0.5 rounded text-xxs">
+                      Signups
+                    </span>
+                    <span className="badge-legend bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5 rounded text-xxs">
+                      Cancellations
+                    </span>
                   </div>
                 </Card.Header>
                 <Card.Body className="p-4 position-relative">
-                  <div className="chart-container-inner" style={{ minHeight: "220px" }}>
-                    <svg width="100%" height="200" viewBox="0 0 500 200" className="overflow-visible">
+                  <div
+                    className="chart-container-inner"
+                    style={{ minHeight: "220px" }}
+                  >
+                    <svg
+                      width="100%"
+                      height="200"
+                      viewBox="0 0 500 200"
+                      className="overflow-visible"
+                    >
                       {/* Grid Lines */}
                       {[0, 1, 2, 3].map((g) => (
-                        <line key={g} x1="40" y1={15 + g * 45} x2="480" y2={15 + g * 45} stroke="#f3f4f6" strokeWidth="1.5" />
+                        <line
+                          key={g}
+                          x1="40"
+                          y1={15 + g * 45}
+                          x2="480"
+                          y2={15 + g * 45}
+                          stroke="#f3f4f6"
+                          strokeWidth="1.5"
+                        />
                       ))}
 
                       {/* Signups Line */}
@@ -849,7 +1482,7 @@ const Dash = () => {
                         <circle
                           key={i}
                           cx={node.x}
-                          cy={150 - (node.growth * 4)}
+                          cy={150 - node.growth * 4}
                           r={hoveredSubIdx === i ? 6 : 3.5}
                           fill="#6366f1"
                           stroke="#ffffff"
@@ -864,14 +1497,21 @@ const Dash = () => {
                       <div
                         className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
                         style={{
-                          left: `${(subGrowthData[hoveredSubIdx].label === "Jun 16" ? 15 : hoveredSubIdx * 15 + 10)}%`,
+                          left: `${subGrowthData[hoveredSubIdx].label === "Jun 16" ? 15 : hoveredSubIdx * 15 + 10}%`,
                           top: "20px",
                           zIndex: 10,
                         }}
                       >
-                        <div className="text-secondary small fw-bold">{subGrowthData[hoveredSubIdx].label}</div>
-                        <div className="text-indigo small font-monospace">Signups: +{subGrowthData[hoveredSubIdx].growth}</div>
-                        <div className="text-danger small font-monospace">Cancelled: -{subGrowthData[hoveredSubIdx].cancellations}</div>
+                        <div className="text-secondary small fw-bold">
+                          {subGrowthData[hoveredSubIdx].label}
+                        </div>
+                        <div className="text-indigo small font-monospace">
+                          Signups: +{subGrowthData[hoveredSubIdx].growth}
+                        </div>
+                        <div className="text-danger small font-monospace">
+                          Cancelled: -
+                          {subGrowthData[hoveredSubIdx].cancellations}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -883,14 +1523,33 @@ const Dash = () => {
             <Col lg={5}>
               <Card className="border-0 shadow-sm rounded-4 h-100 overflow-hidden">
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
-                  <h5 className="m-0 fw-bold text-dark">🔄 Renewal Rate Rate</h5>
-                  <span className="text-muted small">Subscription retention analytics</span>
+                  <h5 className="m-0 fw-bold text-dark">
+                    🔄 Renewal Rate Rate
+                  </h5>
+                  <span className="text-muted small">
+                    Subscription retention analytics
+                  </span>
                 </Card.Header>
                 <Card.Body className="p-4 d-flex flex-column align-items-center justify-content-center">
-                  <div className="position-relative d-flex align-items-center justify-content-center mb-3" style={{ width: "160px", height: "160px" }}>
+                  <div
+                    className="position-relative d-flex align-items-center justify-content-center mb-3"
+                    style={{ width: "160px", height: "160px" }}
+                  >
                     {/* SVG Radial Progress Circle */}
-                    <svg width="100%" height="100%" viewBox="0 0 100 100" className="overflow-visible">
-                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f3f4f6" strokeWidth="9" />
+                    <svg
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 100 100"
+                      className="overflow-visible"
+                    >
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                        stroke="#f3f4f6"
+                        strokeWidth="9"
+                      />
                       <circle
                         cx="50"
                         cy="50"
@@ -905,20 +1564,30 @@ const Dash = () => {
                       />
                     </svg>
                     <div className="position-absolute text-center">
-                      <h2 className="fw-bold mb-0 font-monospace text-emerald">84%</h2>
-                      <span className="text-muted text-xxs fw-semibold uppercase">Renewal Rate</span>
+                      <h2 className="fw-bold mb-0 font-monospace text-emerald">
+                        84%
+                      </h2>
+                      <span className="text-muted text-xxs fw-semibold uppercase">
+                        Renewal Rate
+                      </span>
                     </div>
                   </div>
 
                   <div className="w-100 mt-2 p-3 bg-light rounded-3 d-flex justify-content-around text-center border">
                     <div>
-                      <h6 className="text-muted small mb-0.5">Average Plan Lifecycle</h6>
-                      <h5 className="fw-bold text-dark mb-0 font-monospace">180 Days</h5>
+                      <h6 className="text-muted small mb-0.5">
+                        Average Plan Lifecycle
+                      </h6>
+                      <h5 className="fw-bold text-dark mb-0 font-monospace">
+                        180 Days
+                      </h5>
                     </div>
                     <div className="border-end" />
                     <div>
                       <h6 className="text-muted small mb-0.5">Churn Rate</h6>
-                      <h5 className="fw-bold text-danger mb-0 font-monospace">1.2%</h5>
+                      <h5 className="fw-bold text-danger mb-0 font-monospace">
+                        1.2%
+                      </h5>
                     </div>
                   </div>
                 </Card.Body>
@@ -940,7 +1609,9 @@ const Dash = () => {
               <Row className="g-3">
                 <Col sm={12} md={4}>
                   <Form.Group>
-                    <Form.Label className="small fw-semibold text-muted">Orders Placed Range</Form.Label>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Orders Placed Range
+                    </Form.Label>
                     <div className="d-flex align-items-center gap-2">
                       <Form.Control
                         type="date"
@@ -962,13 +1633,17 @@ const Dash = () => {
                 </Col>
                 <Col sm={12} md={4}>
                   <Form.Group>
-                    <Form.Label className="small fw-semibold text-muted">Delivered in Range</Form.Label>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Delivered in Range
+                    </Form.Label>
                     <div className="d-flex align-items-center gap-2">
                       <Form.Control
                         type="date"
                         size="sm"
                         value={ordersDeliveredStart}
-                        onChange={(e) => setOrdersDeliveredStart(e.target.value)}
+                        onChange={(e) =>
+                          setOrdersDeliveredStart(e.target.value)
+                        }
                         className="font-monospace border-light-subtle rounded-2"
                       />
                       <span className="text-muted small">to</span>
@@ -984,13 +1659,17 @@ const Dash = () => {
                 </Col>
                 <Col sm={12} md={4}>
                   <Form.Group>
-                    <Form.Label className="small fw-semibold text-muted">Cancelled in Range</Form.Label>
+                    <Form.Label className="small fw-semibold text-muted">
+                      Cancelled in Range
+                    </Form.Label>
                     <div className="d-flex align-items-center gap-2">
                       <Form.Control
                         type="date"
                         size="sm"
                         value={ordersCancelledStart}
-                        onChange={(e) => setOrdersCancelledStart(e.target.value)}
+                        onChange={(e) =>
+                          setOrdersCancelledStart(e.target.value)
+                        }
                         className="font-monospace border-light-subtle rounded-2"
                       />
                       <span className="text-muted small">to</span>
@@ -1013,18 +1692,29 @@ const Dash = () => {
             <Col xs={12} md={4}>
               <div className="bg-white p-3.5 rounded-4 border shadow-sm text-center">
                 <h6 className="text-muted small mb-1">📅 Peak Order Days</h6>
-                <h5 className="fw-bold text-warning mb-0">Wednesday & Sunday</h5>
+                <h5 className="fw-bold text-warning mb-0">
+                  Wednesday & Sunday
+                </h5>
               </div>
             </Col>
             <Col xs={12} md={4}>
               <div className="bg-white p-3.5 rounded-4 border shadow-sm text-center">
-                <h6 className="text-muted small mb-1">⏱️ Average Delivery Time</h6>
-                <h5 className="fw-bold text-success mb-0">2.4 Days <span className="text-muted text-xxs font-normal">(In-range calculation)</span></h5>
+                <h6 className="text-muted small mb-1">
+                  ⏱️ Average Delivery Time
+                </h6>
+                <h5 className="fw-bold text-success mb-0">
+                  2.4 Days{" "}
+                  <span className="text-muted text-xxs font-normal">
+                    (In-range calculation)
+                  </span>
+                </h5>
               </div>
             </Col>
             <Col xs={12} md={4}>
               <div className="bg-white p-3.5 rounded-4 border shadow-sm text-center">
-                <h6 className="text-muted small mb-1">📊 Fulfillment Target Ratio</h6>
+                <h6 className="text-muted small mb-1">
+                  📊 Fulfillment Target Ratio
+                </h6>
                 <h5 className="fw-bold text-dark mb-0">94% achieved</h5>
               </div>
             </Col>
@@ -1035,7 +1725,9 @@ const Dash = () => {
             <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
               <div className="d-flex align-items-center gap-2">
                 <ClockHistory className="text-secondary" size={20} />
-                <h5 className="m-0 fw-bold text-dark">Orders Delivery Track sheet</h5>
+                <h5 className="m-0 fw-bold text-dark">
+                  Orders Delivery Track sheet
+                </h5>
               </div>
             </Card.Header>
             <Card.Body className="p-0 mt-3">
@@ -1054,24 +1746,59 @@ const Dash = () => {
                   <tbody className="text-dark small fw-medium">
                     {ordersMockTable.map((order, idx) => (
                       <tr key={idx}>
-                        <td className="px-4 fw-bold font-monospace">{order.id}</td>
-                        <td className="px-4 font-monospace text-secondary">{order.placed}</td>
-                        <td className="px-4 font-monospace text-secondary">{order.payment}</td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {order.dispatch === "Pending" ? <span className="text-warning">Pending</span> : order.dispatch}
+                        <td className="px-4 fw-bold font-monospace">
+                          {order.id}
                         </td>
                         <td className="px-4 font-monospace text-secondary">
-                          {order.delivery === "Pending" ? <span className="text-warning">Pending</span> : order.delivery}
+                          {order.placed}
+                        </td>
+                        <td className="px-4 font-monospace text-secondary">
+                          {order.payment}
+                        </td>
+                        <td className="px-4 font-monospace text-secondary">
+                          {order.dispatch === "Pending" ? (
+                            <span className="text-warning">Pending</span>
+                          ) : (
+                            order.dispatch
+                          )}
+                        </td>
+                        <td className="px-4 font-monospace text-secondary">
+                          {order.delivery === "Pending" ? (
+                            <span className="text-warning">Pending</span>
+                          ) : (
+                            order.delivery
+                          )}
                         </td>
                         <td className="px-4">
                           {order.status === "Delivered" ? (
-                            <Badge bg="success-subtle" className="text-success border border-success-subtle rounded-2 px-2 py-1.5">Delivered</Badge>
-                          ) : order.status === "In Transit" || order.status === "Pending Dispatch" ? (
-                            <Badge bg="warning-subtle" className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5">{order.status}</Badge>
+                            <Badge
+                              bg="success-subtle"
+                              className="text-success border border-success-subtle rounded-2 px-2 py-1.5"
+                            >
+                              Delivered
+                            </Badge>
+                          ) : order.status === "In Transit" ||
+                            order.status === "Pending Dispatch" ? (
+                            <Badge
+                              bg="warning-subtle"
+                              className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5"
+                            >
+                              {order.status}
+                            </Badge>
                           ) : order.status === "Cancelled" ? (
-                            <Badge bg="danger-subtle" className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5">Cancelled</Badge>
+                            <Badge
+                              bg="danger-subtle"
+                              className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5"
+                            >
+                              Cancelled
+                            </Badge>
                           ) : (
-                            <Badge bg="secondary-subtle" className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5">{order.status}</Badge>
+                            <Badge
+                              bg="secondary-subtle"
+                              className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5"
+                            >
+                              {order.status}
+                            </Badge>
                           )}
                         </td>
                       </tr>
@@ -1093,26 +1820,42 @@ const Dash = () => {
           <Row className="g-3 mb-4">
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
-                <span className="text-muted small fw-semibold d-block">Revenue Per Day (Avg)</span>
-                <h4 className="fw-bold text-success font-monospace mt-1 mb-0">{formatCurrency(45200)}</h4>
+                <span className="text-muted small fw-semibold d-block">
+                  Revenue Per Day (Avg)
+                </span>
+                <h4 className="fw-bold text-success font-monospace mt-1 mb-0">
+                  {formatCurrency(45200)}
+                </h4>
               </div>
             </Col>
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
-                <span className="text-muted small fw-semibold d-block">Revenue Per Month (Est)</span>
-                <h4 className="fw-bold text-emerald font-monospace mt-1 mb-0">{formatCurrency(1240000)}</h4>
+                <span className="text-muted small fw-semibold d-block">
+                  Revenue Per Month (Est)
+                </span>
+                <h4 className="fw-bold text-emerald font-monospace mt-1 mb-0">
+                  {formatCurrency(1240000)}
+                </h4>
               </div>
             </Col>
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
-                <span className="text-muted small fw-semibold d-block">Failed Payments (Daily)</span>
-                <h4 className="fw-bold text-danger font-monospace mt-1 mb-0">3 failed</h4>
+                <span className="text-muted small fw-semibold d-block">
+                  Failed Payments (Daily)
+                </span>
+                <h4 className="fw-bold text-danger font-monospace mt-1 mb-0">
+                  3 failed
+                </h4>
               </div>
             </Col>
             <Col xs={6} md={3}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
-                <span className="text-muted small fw-semibold d-block">Refunds Issued (Scope)</span>
-                <h4 className="fw-bold text-warning font-monospace mt-1 mb-0">{formatCurrency(8500)}</h4>
+                <span className="text-muted small fw-semibold d-block">
+                  Refunds Issued (Scope)
+                </span>
+                <h4 className="fw-bold text-warning font-monospace mt-1 mb-0">
+                  {formatCurrency(8500)}
+                </h4>
               </div>
             </Col>
           </Row>
@@ -1122,7 +1865,9 @@ const Dash = () => {
             <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
               <div className="d-flex align-items-center gap-2">
                 <CashStack className="text-success" size={20} />
-                <h5 className="m-0 fw-bold text-dark">Payments Transactions log</h5>
+                <h5 className="m-0 fw-bold text-dark">
+                  Payments Transactions log
+                </h5>
               </div>
             </Card.Header>
             <Card.Body className="p-0 mt-3">
@@ -1141,20 +1886,47 @@ const Dash = () => {
                   <tbody className="text-dark small fw-medium">
                     {paymentsMockTable.map((txn, idx) => (
                       <tr key={idx}>
-                        <td className="px-4 fw-bold font-monospace">{txn.id}</td>
-                        <td className="px-4 font-monospace text-secondary">{txn.paymentDate}</td>
-                        <td className="px-4 font-monospace text-secondary">{txn.linkedDate}</td>
-                        <td className="px-4 font-monospace text-secondary">
-                          {txn.refundDate === "N/A" ? <span className="text-muted">N/A</span> : txn.refundDate}
+                        <td className="px-4 fw-bold font-monospace">
+                          {txn.id}
                         </td>
-                        <td className="px-4 text-end font-monospace fw-bold text-dark">{formatCurrency(txn.amount)}</td>
+                        <td className="px-4 font-monospace text-secondary">
+                          {txn.paymentDate}
+                        </td>
+                        <td className="px-4 font-monospace text-secondary">
+                          {txn.linkedDate}
+                        </td>
+                        <td className="px-4 font-monospace text-secondary">
+                          {txn.refundDate === "N/A" ? (
+                            <span className="text-muted">N/A</span>
+                          ) : (
+                            txn.refundDate
+                          )}
+                        </td>
+                        <td className="px-4 text-end font-monospace fw-bold text-dark">
+                          {formatCurrency(txn.amount)}
+                        </td>
                         <td className="px-4">
                           {txn.status === "Success" ? (
-                            <Badge bg="success-subtle" className="text-success border border-success-subtle rounded-2 px-2 py-1.5">Success</Badge>
+                            <Badge
+                              bg="success-subtle"
+                              className="text-success border border-success-subtle rounded-2 px-2 py-1.5"
+                            >
+                              Success
+                            </Badge>
                           ) : txn.status === "Failed" ? (
-                            <Badge bg="danger-subtle" className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5">Failed</Badge>
+                            <Badge
+                              bg="danger-subtle"
+                              className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5"
+                            >
+                              Failed
+                            </Badge>
                           ) : (
-                            <Badge bg="warning-subtle" className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5">Refunded</Badge>
+                            <Badge
+                              bg="warning-subtle"
+                              className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5"
+                            >
+                              Refunded
+                            </Badge>
                           )}
                         </td>
                       </tr>
@@ -1196,7 +1968,9 @@ const Dash = () => {
 
         /* KPI Card styles */
         .kpi-card {
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition:
+            transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           background-color: #ffffff;
         }
         .kpi-card:hover {
@@ -1292,7 +2066,6 @@ const Dash = () => {
           }
         }
       `}</style>
-
     </div>
   );
 };
