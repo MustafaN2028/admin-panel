@@ -64,37 +64,101 @@ const Dash = () => {
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState(null);
 
+  // Live Revenue Chart States
+  const [revenueChartData, setRevenueChartData] = useState(null);
+  const [revenueChartLoading, setRevenueChartLoading] = useState(false);
+  const [revenueChartError, setRevenueChartError] = useState(null);
+
+  // Live Users & Revenue Trend States
+  const [trendChartData, setTrendChartData] = useState(null);
+  const [trendChartLoading, setTrendChartLoading] = useState(false);
+  const [trendChartError, setTrendChartError] = useState(null);
+
   const fetchDashboardOverview = useCallback(async () => {
     setOverviewLoading(true);
     setOverviewError(null);
+    setRevenueChartLoading(true);
+    setRevenueChartError(null);
+    setTrendChartLoading(true);
+    setTrendChartError(null);
+
     try {
       const token =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const params = new URLSearchParams();
       if (overviewStart) params.append("start_date", overviewStart);
       if (overviewEnd) params.append("end_date", overviewEnd);
+      const queryStr = params.toString();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dashboard/overview?${params.toString()}`;
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
 
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      });
+      // Fetch Overview Metrics
+      const fetchOverview = async () => {
+        try {
+          const res = await fetch(`${baseUrl}/api/admin/dashboard/overview?${queryStr}`, {
+            method: "GET",
+            headers,
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message || "Failed to fetch overview metrics.");
+          }
+          setOverviewData(data);
+        } catch (err) {
+          console.error("fetchDashboardOverview error:", err);
+          setOverviewError(err.message || "An unexpected error occurred.");
+        } finally {
+          setOverviewLoading(false);
+        }
+      };
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch overview metrics.");
-      }
+      // Fetch Revenue Chart
+      const fetchRevenueChart = async () => {
+        try {
+          const res = await fetch(`${baseUrl}/api/admin/dashboard/revenue-chart?${queryStr}`, {
+            method: "GET",
+            headers,
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message || "Failed to fetch revenue chart.");
+          }
+          setRevenueChartData(data.data || []);
+        } catch (err) {
+          console.error("fetchRevenueChart error:", err);
+          setRevenueChartError(err.message || "An unexpected error occurred.");
+        } finally {
+          setRevenueChartLoading(false);
+        }
+      };
 
-      setOverviewData(data);
-    } catch (err) {
-      console.error("fetchDashboardOverview error:", err);
-      setOverviewError(err.message || "An unexpected error occurred.");
-    } finally {
-      setOverviewLoading(false);
+      // Fetch Trend Chart
+      const fetchTrendChart = async () => {
+        try {
+          const res = await fetch(`${baseUrl}/api/admin/dashboard/users-revenue-trend?${queryStr}`, {
+            method: "GET",
+            headers,
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message || "Failed to fetch users & revenue trend.");
+          }
+          setTrendChartData(data || []);
+        } catch (err) {
+          console.error("fetchTrendChart error:", err);
+          setTrendChartError(err.message || "An unexpected error occurred.");
+        } finally {
+          setTrendChartLoading(false);
+        }
+      };
+
+      await Promise.all([fetchOverview(), fetchRevenueChart(), fetchTrendChart()]);
+    } catch (globalErr) {
+      console.error("Global fetch error:", globalErr);
     }
   }, [overviewStart, overviewEnd]);
 
@@ -513,26 +577,115 @@ const Dash = () => {
   // ==========================================
 
   // Tab 1: Overview Breakdown
-  const overviewRevenueBreakdown = [
-    { label: "Jun 16", revenue: 24500, orders: 18 },
-    { label: "Jun 17", revenue: 38200, orders: 25 },
-    { label: "Jun 18", revenue: 31000, orders: 22 },
-    { label: "Jun 19", revenue: 51200, orders: 34 },
-    { label: "Jun 20", revenue: 29000, orders: 19 },
-    { label: "Jun 21", revenue: 18500, orders: 14 },
-    { label: "Jun 22", revenue: 45200, orders: 29 },
-  ];
+  const overviewRevenueBreakdown = useMemo(() => {
+    if (!revenueChartData) {
+      return [
+        { label: "Jun 16", revenue: 24500, orders: 18 },
+        { label: "Jun 17", revenue: 38200, orders: 25 },
+        { label: "Jun 18", revenue: 31000, orders: 22 },
+        { label: "Jun 19", revenue: 51200, orders: 34 },
+        { label: "Jun 20", revenue: 29000, orders: 19 },
+        { label: "Jun 21", revenue: 18500, orders: 14 },
+        { label: "Jun 22", revenue: 45200, orders: 29 },
+      ];
+    }
+    return revenueChartData.map((item) => {
+      const dateObj = new Date(item.date);
+      const label = isNaN(dateObj.getTime())
+        ? item.date
+        : dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return {
+        label,
+        revenue: item.revenue || 0,
+        orders: 0,
+      };
+    });
+  }, [revenueChartData]);
 
   // Tab 1: Users + Revenue Trend Data
-  const trendData = [
-    { label: "Jun 16", users: 18, revenue: 24.5 }, // revenue in thousands
-    { label: "Jun 17", users: 28, revenue: 38.2 },
-    { label: "Jun 18", users: 22, revenue: 31.0 },
-    { label: "Jun 19", users: 45, revenue: 51.2 },
-    { label: "Jun 20", users: 20, revenue: 29.0 },
-    { label: "Jun 21", users: 15, revenue: 18.5 },
-    { label: "Jun 22", users: 38, revenue: 45.2 },
-  ];
+  const trendData = useMemo(() => {
+    if (!trendChartData) {
+      return [
+        { label: "Jun 16", users: 18, revenue: 24.5 },
+        { label: "Jun 17", users: 28, revenue: 38.2 },
+        { label: "Jun 18", users: 22, revenue: 31.0 },
+        { label: "Jun 19", users: 45, revenue: 51.2 },
+        { label: "Jun 20", users: 20, revenue: 29.0 },
+        { label: "Jun 21", users: 15, revenue: 18.5 },
+        { label: "Jun 22", users: 38, revenue: 45.2 },
+      ];
+    }
+    return trendChartData.map((item) => {
+      const dateObj = new Date(item.date);
+      const label = isNaN(dateObj.getTime())
+        ? item.date
+        : dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return {
+        label,
+        users: item.new_users || 0,
+        revenue: (item.revenue || 0) / 1000,
+      };
+    });
+  }, [trendChartData]);
+
+  const revenueChartPoints = useMemo(() => {
+    if (overviewRevenueBreakdown.length === 0) return [];
+    const maxVal = Math.max(...overviewRevenueBreakdown.map((d) => d.revenue), 1000);
+    const total = overviewRevenueBreakdown.length;
+    return overviewRevenueBreakdown.map((item, idx) => {
+      const x = total > 1 ? 45 + (idx / (total - 1)) * 435 : 262.5;
+      const y = 170 - (item.revenue / maxVal) * 150;
+      return { x, y, val: item.revenue, lbl: item.label, orders: item.orders };
+    });
+  }, [overviewRevenueBreakdown]);
+
+  const revenueAreaPath = useMemo(() => {
+    if (revenueChartPoints.length === 0) return "";
+    const firstPoint = revenueChartPoints[0];
+    const lastPoint = revenueChartPoints[revenueChartPoints.length - 1];
+    const pathD = revenueChartPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+    return `${pathD} L ${lastPoint.x.toFixed(1)} 170 L ${firstPoint.x.toFixed(1)} 170 Z`;
+  }, [revenueChartPoints]);
+
+  const revenueStrokePath = useMemo(() => {
+    if (revenueChartPoints.length === 0) return "";
+    return revenueChartPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  }, [revenueChartPoints]);
+
+  const trendChartPoints = useMemo(() => {
+    if (trendData.length === 0) return [];
+    const maxUsers = Math.max(...trendData.map((d) => d.users), 10);
+    const maxRevenue = Math.max(...trendData.map((d) => d.revenue), 10);
+    const total = trendData.length;
+    return trendData.map((item, idx) => {
+      const x = total > 1 ? 45 + (idx / (total - 1)) * 435 : 262.5;
+      const yUser = 170 - (item.users / maxUsers) * 150;
+      const yRev = 170 - (item.revenue / maxRevenue) * 150;
+      return { x, yUser, yRev, users: item.users, revenue: item.revenue, lbl: item.label };
+    });
+  }, [trendData]);
+
+  const trendUsersPath = useMemo(() => {
+    if (trendChartPoints.length === 0) return "";
+    return trendChartPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yUser.toFixed(1)}`).join(" ");
+  }, [trendChartPoints]);
+
+  const trendRevenuePath = useMemo(() => {
+    if (trendChartPoints.length === 0) return "";
+    return trendChartPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yRev.toFixed(1)}`).join(" ");
+  }, [trendChartPoints]);
+
+  const labelIndices = useMemo(() => {
+    const total = trendChartPoints.length;
+    if (total === 0) return [];
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+    const indices = [];
+    const step = (total - 1) / 6;
+    for (let i = 0; i < 7; i++) {
+      indices.push(Math.round(i * step));
+    }
+    return Array.from(new Set(indices)).sort((a, b) => a - b);
+  }, [trendChartPoints]);
 
   // Mock data cleaned - replaced with live API states
 
@@ -1082,182 +1235,141 @@ const Dash = () => {
                   </Badge>
                 </Card.Header>
                 <Card.Body className="p-4 position-relative">
-                  <div
-                    className="chart-container-inner"
-                    style={{ minHeight: "240px" }}
-                  >
-                    <svg
-                      width="100%"
-                      height="220"
-                      viewBox="0 0 500 220"
-                      className="overflow-visible"
-                    >
-                      <defs>
-                        <linearGradient
-                          id="revGrad"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="#10b981"
-                            stopOpacity="0.3"
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="#10b981"
-                            stopOpacity="0.0"
-                          />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Grid Lines */}
-                      {[0, 1, 2, 3].map((g) => (
-                        <line
-                          key={g}
-                          x1="45"
-                          y1={20 + g * 50}
-                          x2="480"
-                          y2={20 + g * 50}
-                          stroke="#f3f4f6"
-                          strokeWidth="1.5"
-                        />
-                      ))}
-
-                      {/* Area Path */}
-                      <path
-                        d="M 45 150 L 117 108 L 190 130 L 262 67 L 335 136 L 407 169 L 480 87 L 480 170 L 45 170 Z"
-                        fill="url(#revGrad)"
-                      />
-
-                      {/* Stroke Line */}
-                      <path
-                        d="M 45 150 L 117 108 L 190 130 L 262 67 L 335 136 L 407 169 L 480 87"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-
-                      {/* Nodes */}
-                      {[
-                        { x: 45, y: 150, val: 24500, lbl: "Jun 16" },
-                        { x: 117, y: 108, val: 38200, lbl: "Jun 17" },
-                        { x: 190, y: 130, val: 31000, lbl: "Jun 18" },
-                        { x: 262, y: 67, val: 51200, lbl: "Jun 19" },
-                        { x: 335, y: 136, val: 29000, lbl: "Jun 20" },
-                        { x: 407, y: 169, val: 18500, lbl: "Jun 21" },
-                        { x: 480, y: 87, val: 45200, lbl: "Jun 22" },
-                      ].map((node, i) => (
-                        <circle
-                          key={i}
-                          cx={node.x}
-                          cy={node.y}
-                          r={hoveredIdx === i ? 6.5 : 4}
-                          fill={hoveredIdx === i ? "#059669" : "#10b981"}
-                          stroke="#ffffff"
-                          strokeWidth="1.5"
-                          onMouseEnter={() => setHoveredIdx(i)}
-                          onMouseLeave={() => setHoveredIdx(null)}
-                          style={{
-                            cursor: "pointer",
-                            transition: "all 0.15s ease",
-                          }}
-                        />
-                      ))}
-
-                      {/* Labels */}
-                      <text
-                        x="45"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 16
-                      </text>
-                      <text
-                        x="117"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 17
-                      </text>
-                      <text
-                        x="190"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 18
-                      </text>
-                      <text
-                        x="262"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 19
-                      </text>
-                      <text
-                        x="335"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 20
-                      </text>
-                      <text
-                        x="407"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 21
-                      </text>
-                      <text
-                        x="480"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 22
-                      </text>
-                    </svg>
-
-                    {/* Tooltip Overlay */}
-                    {hoveredIdx !== null && (
-                      <div
-                        className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
-                        style={{
-                          left: `${overviewRevenueBreakdown[hoveredIdx].label === "Jun 16" ? 15 : hoveredIdx * 15 + 10}%`,
-                          top: "30px",
-                          zIndex: 10,
-                        }}
-                      >
-                        <div className="text-secondary small fw-bold">
-                          {overviewRevenueBreakdown[hoveredIdx].label}
-                        </div>
-                        <div className="fw-bold font-monospace text-emerald">
-                          {formatCurrency(
-                            overviewRevenueBreakdown[hoveredIdx].revenue,
-                          )}
-                        </div>
-                        <div className="text-light small text-xxs font-monospace">
-                          Orders: {overviewRevenueBreakdown[hoveredIdx].orders}
-                        </div>
+                  {revenueChartLoading ? (
+                    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "220px" }}>
+                      <ProgressBar animated now={100} label="Loading revenue data..." className="w-75" />
+                    </div>
+                  ) : revenueChartError ? (
+                    <div className="d-flex justify-content-center align-items-center text-danger text-center px-3" style={{ minHeight: "220px" }}>
+                      <div>
+                        <div className="fw-bold">Unable to load revenue chart</div>
+                        <div className="small text-muted mt-1">{revenueChartError}</div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="chart-container-inner"
+                      style={{ minHeight: "240px" }}
+                    >
+                      <svg
+                        width="100%"
+                        height="220"
+                        viewBox="0 0 500 220"
+                        className="overflow-visible"
+                      >
+                        <defs>
+                          <linearGradient
+                            id="revGrad"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="0%"
+                              stopColor="#10b981"
+                              stopOpacity="0.3"
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor="#10b981"
+                              stopOpacity="0.0"
+                            />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Grid Lines */}
+                        {[0, 1, 2, 3].map((g) => (
+                          <line
+                            key={g}
+                            x1="45"
+                            y1={20 + g * 50}
+                            x2="480"
+                            y2={20 + g * 50}
+                            stroke="#f3f4f6"
+                            strokeWidth="1.5"
+                          />
+                        ))}
+
+                        {/* Area Path */}
+                        {revenueAreaPath && (
+                          <path
+                            d={revenueAreaPath}
+                            fill="url(#revGrad)"
+                          />
+                        )}
+
+                        {/* Stroke Line */}
+                        {revenueStrokePath && (
+                          <path
+                            d={revenueStrokePath}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                        )}
+
+                        {/* Nodes */}
+                        {revenueChartPoints.map((node, i) => (
+                          <circle
+                            key={i}
+                            cx={node.x}
+                            cy={node.y}
+                            r={hoveredIdx === i ? 6.5 : 4}
+                            fill={hoveredIdx === i ? "#059669" : "#10b981"}
+                            stroke="#ffffff"
+                            strokeWidth="1.5"
+                            onMouseEnter={() => setHoveredIdx(i)}
+                            onMouseLeave={() => setHoveredIdx(null)}
+                            style={{
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                          />
+                        ))}
+
+                        {/* Labels */}
+                        {labelIndices.map((idx) => {
+                          const node = revenueChartPoints[idx];
+                          if (!node) return null;
+                          return (
+                            <text
+                              key={idx}
+                              x={node.x}
+                              y="192"
+                              textAnchor="middle"
+                              fontSize="10"
+                              fill="#9ca3af"
+                            >
+                              {node.lbl}
+                            </text>
+                          );
+                        })}
+                      </svg>
+
+                      {/* Tooltip Overlay */}
+                      {hoveredIdx !== null && revenueChartPoints[hoveredIdx] && (
+                        <div
+                          className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
+                          style={{
+                            left: `${(revenueChartPoints[hoveredIdx].x / 500) * 100}%`,
+                            top: "30px",
+                            transform: hoveredIdx >= revenueChartPoints.length / 2 ? "translateX(-100%)" : "translateX(10px)",
+                            zIndex: 10,
+                            pointerEvents: "none",
+                          }}
+                        >
+                          <div className="text-secondary small fw-bold">
+                            {revenueChartPoints[hoveredIdx].lbl}
+                          </div>
+                          <div className="fw-bold font-monospace text-emerald">
+                            {formatCurrency(revenueChartPoints[hoveredIdx].val)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             </Col>
@@ -1284,175 +1396,139 @@ const Dash = () => {
                   </div>
                 </Card.Header>
                 <Card.Body className="p-4 position-relative">
-                  <div
-                    className="chart-container-inner"
-                    style={{ minHeight: "240px" }}
-                  >
-                    <svg
-                      width="100%"
-                      height="220"
-                      viewBox="0 0 500 220"
-                      className="overflow-visible"
-                    >
-                      {/* Grid Lines */}
-                      {[0, 1, 2, 3].map((g) => (
-                        <line
-                          key={g}
-                          x1="45"
-                          y1={20 + g * 50}
-                          x2="480"
-                          y2={20 + g * 50}
-                          stroke="#f3f4f6"
-                          strokeWidth="1.5"
-                        />
-                      ))}
-
-                      {/* Path 1: Users (Blue Line) */}
-                      <path
-                        d="M 45 150 L 117 90 L 190 126 L 262 38 L 335 138 L 407 168 L 480 80"
-                        fill="none"
-                        stroke="#3b82f6"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                      />
-
-                      {/* Path 2: Revenue in Thousands (Emerald Green Line) */}
-                      <path
-                        d="M 45 110 L 117 70 L 190 95 L 262 30 L 335 100 L 407 135 L 480 60"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeDasharray="4,3"
-                      />
-
-                      {/* Interactive hover overlays mapping */}
-                      {[
-                        { x: 45, yUser: 150, yRev: 110 },
-                        { x: 117, yUser: 90, yRev: 70 },
-                        { x: 190, yUser: 126, yRev: 95 },
-                        { x: 262, yUser: 38, yRev: 30 },
-                        { x: 335, yUser: 138, yRev: 100 },
-                        { x: 407, yUser: 168, yRev: 135 },
-                        { x: 480, yUser: 80, yRev: 60 },
-                      ].map((node, i) => (
-                        <g key={i}>
-                          <circle
-                            cx={node.x}
-                            cy={node.yUser}
-                            r={hoveredTrendIdx === i ? 6 : 3.5}
-                            fill="#3b82f6"
-                            stroke="#ffffff"
-                            strokeWidth="1"
-                            onMouseEnter={() => setHoveredTrendIdx(i)}
-                            onMouseLeave={() => setHoveredTrendIdx(null)}
-                            style={{ cursor: "pointer" }}
-                          />
-                          <circle
-                            cx={node.x}
-                            cy={node.yRev}
-                            r={hoveredTrendIdx === i ? 6 : 3.5}
-                            fill="#10b981"
-                            stroke="#ffffff"
-                            strokeWidth="1"
-                            onMouseEnter={() => setHoveredTrendIdx(i)}
-                            onMouseLeave={() => setHoveredTrendIdx(null)}
-                            style={{ cursor: "pointer" }}
-                          />
-                        </g>
-                      ))}
-
-                      {/* Labels */}
-                      <text
-                        x="45"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 16
-                      </text>
-                      <text
-                        x="117"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 17
-                      </text>
-                      <text
-                        x="190"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 18
-                      </text>
-                      <text
-                        x="262"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 19
-                      </text>
-                      <text
-                        x="335"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 20
-                      </text>
-                      <text
-                        x="407"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 21
-                      </text>
-                      <text
-                        x="480"
-                        y="192"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fill="#9ca3af"
-                      >
-                        Jun 22
-                      </text>
-                    </svg>
-
-                    {/* Trend Tooltip */}
-                    {hoveredTrendIdx !== null && (
-                      <div
-                        className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
-                        style={{
-                          left: `${trendData[hoveredTrendIdx].label === "Jun 16" ? 15 : hoveredTrendIdx * 15 + 10}%`,
-                          top: "20px",
-                          zIndex: 10,
-                        }}
-                      >
-                        <div className="text-secondary small fw-bold">
-                          {trendData[hoveredTrendIdx].label}
-                        </div>
-                        <div className="text-primary small font-monospace">
-                          👥 New Users: {trendData[hoveredTrendIdx].users}
-                        </div>
-                        <div className="text-emerald small font-monospace">
-                          💰 Income:{" "}
-                          {formatCurrency(
-                            trendData[hoveredTrendIdx].revenue * 1000,
-                          )}
-                        </div>
+                  {trendChartLoading ? (
+                    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "220px" }}>
+                      <ProgressBar animated now={100} label="Loading trend data..." className="w-75" />
+                    </div>
+                  ) : trendChartError ? (
+                    <div className="d-flex justify-content-center align-items-center text-danger text-center px-3" style={{ minHeight: "220px" }}>
+                      <div>
+                        <div className="fw-bold">Unable to load trend chart</div>
+                        <div className="small text-muted mt-1">{trendChartError}</div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="chart-container-inner"
+                      style={{ minHeight: "240px" }}
+                    >
+                      <svg
+                        width="100%"
+                        height="220"
+                        viewBox="0 0 500 220"
+                        className="overflow-visible"
+                      >
+                        {/* Grid Lines */}
+                        {[0, 1, 2, 3].map((g) => (
+                          <line
+                            key={g}
+                            x1="45"
+                            y1={20 + g * 50}
+                            x2="480"
+                            y2={20 + g * 50}
+                            stroke="#f3f4f6"
+                            strokeWidth="1.5"
+                          />
+                        ))}
+
+                        {/* Path 1: Users (Blue Line) */}
+                        {trendUsersPath && (
+                          <path
+                            d={trendUsersPath}
+                            fill="none"
+                            stroke="#3b82f6"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                        )}
+
+                        {/* Path 2: Revenue in Thousands (Emerald Green Line) */}
+                        {trendRevenuePath && (
+                          <path
+                            d={trendRevenuePath}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeDasharray="4,3"
+                          />
+                        )}
+
+                        {/* Interactive hover overlays mapping */}
+                        {trendChartPoints.map((node, i) => (
+                          <g key={i}>
+                            <circle
+                              cx={node.x}
+                              cy={node.yUser}
+                              r={hoveredTrendIdx === i ? 6 : 3.5}
+                              fill="#3b82f6"
+                              stroke="#ffffff"
+                              strokeWidth="1"
+                              onMouseEnter={() => setHoveredTrendIdx(i)}
+                              onMouseLeave={() => setHoveredTrendIdx(null)}
+                              style={{ cursor: "pointer" }}
+                            />
+                            <circle
+                              cx={node.x}
+                              cy={node.yRev}
+                              r={hoveredTrendIdx === i ? 6 : 3.5}
+                              fill="#10b981"
+                              stroke="#ffffff"
+                              strokeWidth="1"
+                              onMouseEnter={() => setHoveredTrendIdx(i)}
+                              onMouseLeave={() => setHoveredTrendIdx(null)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </g>
+                        ))}
+
+                        {/* Labels */}
+                        {labelIndices.map((idx) => {
+                          const node = trendChartPoints[idx];
+                          if (!node) return null;
+                          return (
+                            <text
+                              key={idx}
+                              x={node.x}
+                              y="192"
+                              textAnchor="middle"
+                              fontSize="10"
+                              fill="#9ca3af"
+                            >
+                              {node.lbl}
+                            </text>
+                          );
+                        })}
+                      </svg>
+
+                      {/* Trend Tooltip */}
+                      {hoveredTrendIdx !== null && trendChartPoints[hoveredTrendIdx] && (
+                        <div
+                          className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
+                          style={{
+                            left: `${(trendChartPoints[hoveredTrendIdx].x / 500) * 100}%`,
+                            top: "20px",
+                            transform: hoveredTrendIdx >= trendChartPoints.length / 2 ? "translateX(-100%)" : "translateX(10px)",
+                            zIndex: 10,
+                            pointerEvents: "none",
+                          }}
+                        >
+                          <div className="text-secondary small fw-bold">
+                            {trendChartPoints[hoveredTrendIdx].lbl}
+                          </div>
+                          <div className="text-primary small font-monospace">
+                            👥 New Users: {trendChartPoints[hoveredTrendIdx].users}
+                          </div>
+                          <div className="text-emerald small font-monospace">
+                            💰 Income:{" "}
+                            {formatCurrency(
+                              trendChartPoints[hoveredTrendIdx].revenue * 1000,
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             </Col>
