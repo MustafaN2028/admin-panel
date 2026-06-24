@@ -700,55 +700,29 @@ const Dash = () => {
       {/* 1. TOP TITLE HEADER */}
       <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-2">
         <div>
-          <h2 className="fw-bold text-dark mb-1">Aartava System Analytics</h2>
-          <p className="text-muted small mb-0">
-            High-fidelity dashboard interface prototype covering metrics
-            aggregates.
-          </p>
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          <Badge
-            bg="success-subtle"
-            className="text-success border border-success-subtle px-2 py-1.5 rounded-2"
-          >
-            Design Mode: Enabled
-          </Badge>
-          <Badge bg="dark" className="px-2 py-1.5 rounded-2 font-monospace">
-            Local Time: {todayStr}
-          </Badge>
+          <h2 className="fw-bold text-dark mb-1">Analytics Dashboard</h2>
         </div>
       </div>
 
       {/* 2. TABBED MANAGEMENT NAVIGATION BAR */}
       <Card className="border-0 shadow-sm rounded-4 mb-4 overflow-hidden tab-navigation-card">
         <Card.Body className="p-2 bg-white">
-          <div className="d-flex flex-wrap gap-2">
+          <div className="tab-scroll-container d-flex justify-content-start justify-content-md-around align-items-center w-100 gap-1">
             {[
-              {
-                id: "overview",
-                label: "📊 Overview Dashboard",
-                color: "primary",
-              },
-              { id: "users", label: "👥 User Management", color: "info" },
-              {
-                id: "subscriptions",
-                label: "💳 Subscriptions Hub",
-                color: "success",
-              },
-              { id: "orders", label: "📦 Orders & Delivery", color: "warning" },
-              { id: "payments", label: "💰 Payments Ledger", color: "danger" },
+              { id: "overview", label: "Overview Dashboard", icon: <ClipboardData size={15} /> },
+              { id: "users", label: "User Management", icon: <People size={15} /> },
+              { id: "subscriptions", label: "Subscriptions Hub", icon: <CreditCard size={15} /> },
+              { id: "orders", label: "Orders & Delivery", icon: <CartCheck size={15} /> },
+              { id: "payments", label: "Payments Ledger", icon: <CashStack size={15} /> },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
-                className={`btn rounded-3 px-3.5 py-2 fw-bold transition-all border-0 ${
-                  activeTab === tab.id
-                    ? `btn-${tab.color} text-white shadow-sm`
-                    : "btn-light text-secondary hover-bg-gray"
-                }`}
+                className={`tab-btn ${activeTab === tab.id ? "active" : ""}`}
                 onClick={() => setActiveTab(tab.id)}
               >
-                {tab.label}
+                {tab.icon}
+                <span>{tab.label}</span>
               </button>
             ))}
           </div>
@@ -762,20 +736,19 @@ const Dash = () => {
         <div className="animate-fade-in">
           {/* A. Date Scope Filter UI */}
           <Card className="border-0 shadow-sm rounded-4 mb-4">
-            <Card.Body className="p-3 bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
-              <div className="d-flex align-items-center gap-2">
-                <Calendar3 className="text-primary" size={18} />
-                <span className="fw-semibold text-secondary small">
-                  Filter Scope:
-                </span>
-                <Badge
-                  bg="primary-subtle"
-                  className="text-primary px-3 py-1.5 rounded-2"
-                >
+            <Card.Body className="p-3 bg-white d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
+              <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
+                <div className="d-flex align-items-center gap-2">
+                  <Calendar3 className="text-primary" size={16} />
+                  <span className="fw-semibold text-secondary small text-nowrap">
+                    Filter Scope:
+                  </span>
+                </div>
+                <span className="badge bg-primary-subtle text-primary px-3 py-2 rounded-2 text-nowrap">
                   Selected Range: {overviewStart} to {overviewEnd}
-                </Badge>
+                </span>
               </div>
-              <div className="d-flex align-items-center gap-2">
+              <div className="d-flex align-items-center gap-2 flex-wrap flex-sm-nowrap w-100 w-md-auto justify-content-start justify-content-md-end">
                 <Form.Control
                   type="date"
                   size="sm"
@@ -791,6 +764,7 @@ const Dash = () => {
                     }
                   }}
                   className="font-monospace border-light-subtle rounded-2"
+                  style={{ width: "135px" }}
                 />
                 <span className="text-muted small">to</span>
                 <Form.Control
@@ -808,11 +782,12 @@ const Dash = () => {
                     }
                   }}
                   className="font-monospace border-light-subtle rounded-2"
+                  style={{ width: "135px" }}
                 />
                 <Button
-                  variant="outline-dark"
+                  variant="outline-secondary"
                   size="sm"
-                  className="rounded-2"
+                  className="rounded-2 px-3"
                   onClick={fetchDashboardOverview}
                   disabled={overviewLoading}
                 >
@@ -827,11 +802,11 @@ const Dash = () => {
             {/* New Users */}
             <Col sm={12} md={6} lg={3}>
               <Card className="border-0 shadow-sm rounded-4 h-100 kpi-card position-relative overflow-hidden">
-                <Card.Body className="d-flex flex-column justify-content-between p-3.5">
-                  <div className="d-flex justify-content-between">
+                <Card.Body className="d-flex flex-column justify-content-between p-3">
+                  <div className="d-flex justify-content-between align-items-start">
                     <div>
                       <span className="text-muted small fw-semibold text-uppercase tracking-wider">
-                        👥 New Users
+                        New Users
                       </span>
                       <h3 className="fw-bold mt-1 mb-0 font-monospace">
                         {overviewLoading
@@ -839,7 +814,7 @@ const Dash = () => {
                           : (overviewData?.new_users ?? 0)}
                       </h3>
                     </div>
-                    <div className="kpi-icon-bg bg-primary bg-opacity-10 text-primary p-2.5 rounded-3">
+                    <div className="kpi-icon-bg bg-primary bg-opacity-10 text-primary p-2 rounded-3">
                       <PersonPlusFill size={22} />
                     </div>
                   </div>
@@ -849,15 +824,14 @@ const Dash = () => {
                     ) : (
                       <>
                         <span
-                          className={`small fw-bold d-flex align-items-center gap-0.5 ${
-                            (overviewData?.new_users_change_percentage ?? 0) >=
+                          className={`small fw-bold d-flex align-items-center gap-1 ${(overviewData?.new_users_change_percentage ?? 0) >=
                             0
-                              ? "text-success"
-                              : "text-danger"
-                          }`}
+                            ? "text-success"
+                            : "text-danger"
+                            }`}
                         >
                           {(overviewData?.new_users_change_percentage ?? 0) >=
-                          0 ? (
+                            0 ? (
                             <ArrowUpRight size={12} />
                           ) : (
                             <ArrowDownRight size={12} />
@@ -876,25 +850,21 @@ const Dash = () => {
             {/* DAU */}
             <Col sm={12} md={6} lg={3}>
               <Card className="border-0 shadow-sm rounded-4 h-100 kpi-card position-relative overflow-hidden">
-                <Card.Body className="d-flex flex-column justify-content-between p-3.5">
-                  <div className="d-flex justify-content-between">
+                <Card.Body className="d-flex flex-column justify-content-between p-3">
+                  <div className="d-flex justify-content-between align-items-start">
                     <div>
                       <span className="text-muted small fw-semibold text-uppercase tracking-wider">
-                        🆕 Daily Active (DAU)
+                        Daily Active Users
                       </span>
-                      <div className="d-flex align-items-baseline gap-2 mt-1">
+                      <div className="d-flex mt-1">
                         <h3 className="fw-bold mb-0 font-monospace">
                           {overviewLoading
                             ? "..."
                             : (overviewData?.daily_active_users ?? 0)}
                         </h3>
-                        <span className="live-pulse-container">
-                          <span className="live-pulse-dot" />
-                          <span className="live-pulse-ring" />
-                        </span>
                       </div>
                     </div>
-                    <div className="kpi-icon-bg bg-danger bg-opacity-10 text-danger p-2.5 rounded-3">
+                    <div className="kpi-icon-bg bg-danger bg-opacity-10 text-danger p-2 rounded-3">
                       <Activity size={22} />
                     </div>
                   </div>
@@ -904,11 +874,10 @@ const Dash = () => {
                     ) : (
                       <>
                         <span
-                          className={`small fw-bold d-flex align-items-center gap-0.5 ${
-                            (overviewData?.dau_change_percentage ?? 0) >= 0
-                              ? "text-success"
-                              : "text-danger"
-                          }`}
+                          className={`small fw-bold d-flex align-items-center gap-1 ${(overviewData?.dau_change_percentage ?? 0) >= 0
+                            ? "text-success"
+                            : "text-danger"
+                            }`}
                         >
                           {(overviewData?.dau_change_percentage ?? 0) >= 0 ? (
                             <ArrowUpRight size={12} />
@@ -931,11 +900,11 @@ const Dash = () => {
             {/* WAU */}
             <Col sm={12} md={6} lg={3}>
               <Card className="border-0 shadow-sm rounded-4 h-100 kpi-card position-relative overflow-hidden">
-                <Card.Body className="d-flex flex-column justify-content-between p-3.5">
-                  <div className="d-flex justify-content-between">
+                <Card.Body className="d-flex flex-column justify-content-between p-3">
+                  <div className="d-flex justify-content-between align-items-start">
                     <div>
                       <span className="text-muted small fw-semibold text-uppercase tracking-wider">
-                        📈 Weekly Active (WAU)
+                        Weekly Active Users
                       </span>
                       <h3 className="fw-bold mt-1 mb-0 font-monospace">
                         {overviewLoading
@@ -943,7 +912,7 @@ const Dash = () => {
                           : (overviewData?.weekly_active_users ?? 0)}
                       </h3>
                     </div>
-                    <div className="kpi-icon-bg bg-info bg-opacity-10 text-info p-2.5 rounded-3">
+                    <div className="kpi-icon-bg bg-info bg-opacity-10 text-info p-2 rounded-3">
                       <GraphUp size={22} />
                     </div>
                   </div>
@@ -973,11 +942,11 @@ const Dash = () => {
             {/* Revenue */}
             <Col sm={12} md={6} lg={3}>
               <Card className="border-0 shadow-sm rounded-4 h-100 kpi-card position-relative overflow-hidden">
-                <Card.Body className="d-flex flex-column justify-content-between p-3.5">
-                  <div className="d-flex justify-content-between">
+                <Card.Body className="d-flex flex-column justify-content-between p-3">
+                  <div className="d-flex justify-content-between align-items-start">
                     <div>
                       <span className="text-muted small fw-semibold text-uppercase tracking-wider">
-                        💰 Total Income
+                        Total Income
                       </span>
                       <h3 className="fw-bold mt-1 mb-0 font-monospace text-emerald">
                         {overviewLoading
@@ -985,7 +954,7 @@ const Dash = () => {
                           : formatCurrency(overviewData?.total_income ?? 0)}
                       </h3>
                     </div>
-                    <div className="kpi-icon-bg bg-success bg-opacity-10 text-success p-2.5 rounded-3">
+                    <div className="kpi-icon-bg bg-success bg-opacity-10 text-success p-2 rounded-3">
                       <CurrencyRupee size={22} />
                     </div>
                   </div>
@@ -995,14 +964,13 @@ const Dash = () => {
                     ) : (
                       <>
                         <span
-                          className={`small fw-bold d-flex align-items-center gap-0.5 ${
-                            (overviewData?.income_change_percentage ?? 0) >= 0
-                              ? "text-success"
-                              : "text-danger"
-                          }`}
+                          className={`small fw-bold d-flex align-items-center gap-1 ${(overviewData?.income_change_percentage ?? 0) >= 0
+                            ? "text-success"
+                            : "text-danger"
+                            }`}
                         >
                           {(overviewData?.income_change_percentage ?? 0) >=
-                          0 ? (
+                            0 ? (
                             <ArrowUpRight size={12} />
                           ) : (
                             <ArrowDownRight size={12} />
@@ -1036,7 +1004,7 @@ const Dash = () => {
                 </Card.Header>
                 <Card.Body className="p-4">
                   <div className="d-flex flex-column gap-3 w-100">
-                    <div className="d-flex align-items-center justify-content-between bg-light p-2.5 rounded-3 border-start border-3 border-primary shadow-xs">
+                    <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 border-start border-3 border-primary shadow-xs">
                       <div>
                         <h6 className="mb-0 fw-bold text-dark small">
                           Active (as of selected date)
@@ -1052,7 +1020,7 @@ const Dash = () => {
                       </span>
                     </div>
 
-                    <div className="d-flex align-items-center justify-content-between bg-light p-2.5 rounded-3 border-start border-3 border-success shadow-xs">
+                    <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 border-start border-3 border-success shadow-xs">
                       <div>
                         <h6 className="mb-0 fw-bold text-dark small">
                           Started (in date range)
@@ -1068,7 +1036,7 @@ const Dash = () => {
                       </span>
                     </div>
 
-                    <div className="d-flex align-items-center justify-content-between bg-light p-2.5 rounded-3 border-start border-3 border-danger shadow-xs">
+                    <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 border-start border-3 border-danger shadow-xs">
                       <div>
                         <h6 className="mb-0 fw-bold text-dark small">
                           Cancelled (in date range)
@@ -1084,7 +1052,7 @@ const Dash = () => {
                       </span>
                     </div>
 
-                    <div className="d-flex align-items-center justify-content-between bg-light p-2.5 rounded-3 border-start border-3 border-warning shadow-xs">
+                    <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 border-start border-3 border-warning shadow-xs">
                       <div>
                         <h6 className="mb-0 fw-bold text-dark small">
                           Renewed (in date range)
@@ -1111,7 +1079,7 @@ const Dash = () => {
                   <div className="d-flex align-items-center gap-2">
                     <CartCheck className="text-warning" size={20} />
                     <h5 className="m-0 fw-bold text-dark">
-                      📦 Orders Overview
+                      Orders Overview
                     </h5>
                   </div>
                   <span className="text-muted small">
@@ -1124,7 +1092,7 @@ const Dash = () => {
                     placed
                   </span>
                 </Card.Header>
-                <Card.Body className="p-4 d-flex flex-column justify-content-center">
+                <Card.Body className="p-4 d-flex flex-column">
                   <div className="mb-4">
                     <h6 className="text-muted small fw-semibold text-uppercase mb-2">
                       Fulfillment Distribution
@@ -1165,9 +1133,9 @@ const Dash = () => {
                       <div className="p-3 bg-light rounded-3 d-flex flex-column align-items-center text-center border">
                         <CheckCircleFill
                           size={20}
-                          className="text-success mb-1.5"
+                          className="text-success mb-2"
                         />
-                        <h6 className="mb-0.5 text-secondary small">
+                        <h6 className="mb-1 text-secondary small">
                           Delivered
                         </h6>
                         <h5 className="fw-bold text-dark mb-0 font-monospace">
@@ -1181,9 +1149,9 @@ const Dash = () => {
                       <div className="p-3 bg-light rounded-3 d-flex flex-column align-items-center text-center border">
                         <HourglassSplit
                           size={20}
-                          className="text-warning mb-1.5"
+                          className="text-warning mb-2"
                         />
-                        <h6 className="mb-0.5 text-secondary small">Pending</h6>
+                        <h6 className="mb-1 text-secondary small">Pending</h6>
                         <h5 className="fw-bold text-dark mb-0 font-monospace">
                           {overviewLoading
                             ? "..."
@@ -1195,9 +1163,9 @@ const Dash = () => {
                       <div className="p-3 bg-light rounded-3 d-flex flex-column align-items-center text-center border">
                         <ClipboardData
                           size={20}
-                          className="text-primary mb-1.5"
+                          className="text-primary mb-2"
                         />
-                        <h6 className="mb-0.5 text-secondary small">
+                        <h6 className="mb-1 text-secondary small">
                           Fulfillment
                         </h6>
                         <h5 className="fw-bold text-dark mb-0 font-monospace">
@@ -1221,7 +1189,7 @@ const Dash = () => {
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                   <div>
                     <h5 className="m-0 fw-bold text-dark">
-                      💰 Daily Revenue Breakdown
+                      Daily Revenue Breakdown
                     </h5>
                     <span className="text-muted small">
                       Daily revenue collections in INR
@@ -1380,17 +1348,17 @@ const Dash = () => {
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                   <div>
                     <h5 className="m-0 fw-bold text-dark">
-                      📊 Users & Revenue Trend
+                      Users & Revenue Trend
                     </h5>
                     <span className="text-muted small">
                       Registrations & Gross collections correlated
                     </span>
                   </div>
                   <div className="d-flex gap-2">
-                    <span className="badge-legend bg-primary-subtle text-primary border border-primary-subtle px-1.5 py-0.5 rounded text-xxs">
+                    <span className="badge-legend bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 badge">
                       Users
                     </span>
-                    <span className="badge-legend bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5 rounded text-xxs">
+                    <span className="badge-legend bg-success-subtle text-success border border-success-subtle px-3 py-1 badge">
                       Revenue (k)
                     </span>
                   </div>
@@ -1644,8 +1612,8 @@ const Dash = () => {
                   <thead className="table-dark border-bottom text-secondary small uppercase fw-semibold">
                     <tr>
                       <th className="py-3 px-4">Name</th>
-                      <th className="py-3 px-4">Join Date 📅</th>
-                      <th className="py-3 px-4">Last Active Date 📅</th>
+                      <th className="py-3 px-4">Join Date</th>
+                      <th className="py-3 px-4">Last Active Date</th>
                       <th className="py-3 px-4">Subscription Status</th>
                       <th className="py-3 px-4 text-center">Total Orders</th>
                     </tr>
@@ -1686,7 +1654,7 @@ const Dash = () => {
                               {user.name || "Unnamed User"}
                             </span>
                             {user.phone_number && (
-                              <div className="text-muted text-xxs font-monospace mt-0.5">
+                              <div className="text-muted text-xxs font-monospace mt-1">
                                 {user.phone_number}
                               </div>
                             )}
@@ -1699,10 +1667,10 @@ const Dash = () => {
                           </td>
                           <td className="px-4">
                             {user.subscription_status?.toLowerCase() ===
-                            "active" ? (
+                              "active" ? (
                               <Badge
                                 bg="success-subtle"
-                                className="text-success border border-success-subtle rounded-2 px-2 py-1.5"
+                                className="text-success border border-success-subtle rounded-2 px-2 py-1"
                               >
                                 Active
                               </Badge>
@@ -1710,7 +1678,7 @@ const Dash = () => {
                               "cancelled" ? (
                               <Badge
                                 bg="danger-subtle"
-                                className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5"
+                                className="text-danger border border-danger-subtle rounded-2 px-2 py-1"
                               >
                                 Cancelled
                               </Badge>
@@ -1718,14 +1686,14 @@ const Dash = () => {
                               "expired" ? (
                               <Badge
                                 bg="warning-subtle"
-                                className="text-warning border border-warning-subtle rounded-2 px-2 py-1.5"
+                                className="text-warning border border-warning-subtle rounded-2 px-2 py-1"
                               >
                                 Expired
                               </Badge>
                             ) : (
                               <Badge
                                 bg="secondary-subtle"
-                                className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5"
+                                className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1"
                               >
                                 Inactive
                               </Badge>
@@ -1767,7 +1735,7 @@ const Dash = () => {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    className="rounded-3 px-3 border-light-subtle py-1 fw-semibold font-monospace"
                     disabled={usersPage === 1 || usersLoading}
                     onClick={() =>
                       setUsersPage((prev) => Math.max(prev - 1, 1))
@@ -1781,7 +1749,7 @@ const Dash = () => {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    className="rounded-3 px-3 border-light-subtle py-1 fw-semibold font-monospace"
                     disabled={usersPage === usersTotalPages || usersLoading}
                     onClick={() =>
                       setUsersPage((prev) =>
@@ -1855,17 +1823,17 @@ const Dash = () => {
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                   <div>
                     <h5 className="m-0 fw-bold text-dark">
-                      📈 Daily Subscription Growth & Cancellations
+                      Daily Subscription Growth & Cancellations
                     </h5>
                     <span className="text-muted small">
                       Subscription changes day-by-day
                     </span>
                   </div>
                   <div className="d-flex gap-2">
-                    <span className="badge-legend bg-indigo-subtle text-indigo border border-indigo-subtle px-1.5 py-0.5 rounded text-xxs">
+                    <span className="badge-legend bg-indigo-subtle text-indigo border border-indigo-subtle px-3 py-1 badge">
                       Signups
                     </span>
-                    <span className="badge-legend bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5 rounded text-xxs">
+                    <span className="badge-legend bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 badge">
                       Cancellations
                     </span>
                   </div>
@@ -1974,7 +1942,7 @@ const Dash = () => {
               <Card className="border-0 shadow-sm rounded-4 h-100 overflow-hidden">
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
                   <h5 className="m-0 fw-bold text-dark">
-                    🔄 Renewal Rate Rate
+                    Renewal Rate
                   </h5>
                   <span className="text-muted small">
                     Subscription retention analytics
@@ -1982,15 +1950,13 @@ const Dash = () => {
                 </Card.Header>
                 <Card.Body className="p-4 d-flex flex-column align-items-center justify-content-center">
                   <div
-                    className="position-relative d-flex align-items-center justify-content-center mb-3"
+                    className="position-relative mb-3 mx-auto"
                     style={{ width: "160px", height: "160px" }}
                   >
                     {/* SVG Radial Progress Circle */}
                     <svg
-                      width="100%"
-                      height="100%"
                       viewBox="0 0 100 100"
-                      className="overflow-visible"
+                      className="position-absolute top-0 start-0 w-100 h-100 overflow-visible"
                     >
                       <circle
                         cx="50"
@@ -2013,7 +1979,7 @@ const Dash = () => {
                         transform="rotate(-90 50 50)"
                       />
                     </svg>
-                    <div className="position-absolute text-center">
+                    <div className="position-absolute top-50 start-50 translate-middle text-center w-100">
                       <h2 className="fw-bold mb-0 font-monospace text-emerald">
                         {subLoading ? "..." : `${subRenewalRate}%`}
                       </h2>
@@ -2025,7 +1991,7 @@ const Dash = () => {
 
                   <div className="w-100 mt-2 p-3 bg-light rounded-3 d-flex justify-content-around text-center border">
                     <div>
-                      <h6 className="text-muted small mb-0.5">
+                      <h6 className="text-muted small mb-1">
                         Average Plan Lifecycle
                       </h6>
                       <h5 className="fw-bold text-dark mb-0 font-monospace">
@@ -2034,7 +2000,7 @@ const Dash = () => {
                     </div>
                     <div className="border-end" />
                     <div>
-                      <h6 className="text-muted small mb-0.5">Churn Rate</h6>
+                      <h6 className="text-muted small mb-1">Churn Rate</h6>
                       <h5 className="fw-bold text-danger mb-0 font-monospace">
                         {subLoading ? "..." : `${subChurnRate}%`}
                       </h5>
@@ -2132,17 +2098,17 @@ const Dash = () => {
           {/* B. Order Metrics Row */}
           <Row className="g-3 mb-4">
             <Col xs={12} md={4}>
-              <div className="bg-white p-3.5 rounded-4 border shadow-sm text-center">
-                <h6 className="text-muted small mb-1">📅 Peak Order Days</h6>
+              <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
+                <h6 className="text-muted small mb-1">Peak Order Days</h6>
                 <h5 className="fw-bold text-warning mb-0">
                   {ordersLoading ? "..." : ordersPeakDays}
                 </h5>
               </div>
             </Col>
             <Col xs={12} md={4}>
-              <div className="bg-white p-3.5 rounded-4 border shadow-sm text-center">
+              <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
                 <h6 className="text-muted small mb-1">
-                  ⏱️ Average Delivery Time
+                  Average Delivery Time
                 </h6>
                 <h5 className="fw-bold text-success mb-0">
                   {ordersLoading ? "..." : `${ordersAvgDelivery} Days`}{" "}
@@ -2153,9 +2119,9 @@ const Dash = () => {
               </div>
             </Col>
             <Col xs={12} md={4}>
-              <div className="bg-white p-3.5 rounded-4 border shadow-sm text-center">
+              <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
                 <h6 className="text-muted small mb-1">
-                  📊 Fulfillment Target Ratio
+                  Fulfillment Target Ratio
                 </h6>
                 <h5 className="fw-bold text-dark mb-0">
                   {ordersLoading ? "..." : `${ordersFulfillmentRatio}% achieved`}
@@ -2181,10 +2147,10 @@ const Dash = () => {
                     <tr>
                       <th className="py-3 px-4">Order ID</th>
                       <th className="py-3 px-4">Customer</th>
-                      <th className="py-3 px-4">Placed Date 📅</th>
-                      <th className="py-3 px-4">Payment Date 📅</th>
-                      <th className="py-3 px-4">Dispatch Date 📅</th>
-                      <th className="py-3 px-4">Delivery Date 📅</th>
+                      <th className="py-3 px-4">Placed Date</th>
+                      <th className="py-3 px-4">Payment Date</th>
+                      <th className="py-3 px-4">Dispatch Date</th>
+                      <th className="py-3 px-4">Delivery Date</th>
                       <th className="py-3 px-4">Fulfillment Status</th>
                     </tr>
                   </thead>
@@ -2229,7 +2195,7 @@ const Dash = () => {
                                 {order.customer_name || "Unnamed"}
                               </span>
                               {order.customer_phone_number && (
-                                <div className="text-muted text-xxs font-monospace mt-0.5">
+                                <div className="text-muted text-xxs font-monospace mt-1">
                                   {order.customer_phone_number}
                                 </div>
                               )}
@@ -2254,7 +2220,7 @@ const Dash = () => {
                               {normalizedStatus === "delivered" ? (
                                 <Badge
                                   bg="success-subtle"
-                                  className="text-success border border-success-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                  className="text-success border border-success-subtle rounded-2 px-2 py-1 text-capitalize"
                                 >
                                   {order.status}
                                 </Badge>
@@ -2262,21 +2228,21 @@ const Dash = () => {
                                 normalizedStatus === "pending dispatch" ? (
                                 <Badge
                                   bg="warning-subtle"
-                                  className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                  className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1 text-capitalize"
                                 >
                                   {order.status}
                                 </Badge>
                               ) : normalizedStatus === "cancelled" ? (
                                 <Badge
                                   bg="danger-subtle"
-                                  className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                  className="text-danger border border-danger-subtle rounded-2 px-2 py-1 text-capitalize"
                                 >
                                   {order.status}
                                 </Badge>
                               ) : (
                                 <Badge
                                   bg="secondary-subtle"
-                                  className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                  className="text-secondary border border-secondary-subtle rounded-2 px-2 py-1 text-capitalize"
                                 >
                                   {order.status || "Unknown"}
                                 </Badge>
@@ -2316,7 +2282,7 @@ const Dash = () => {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    className="rounded-3 px-3 border-light-subtle py-1 fw-semibold font-monospace"
                     disabled={ordersPage === 1 || ordersLoading}
                     onClick={() =>
                       setOrdersPage((prev) => Math.max(prev - 1, 1))
@@ -2330,7 +2296,7 @@ const Dash = () => {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    className="rounded-3 px-3 border-light-subtle py-1 fw-semibold font-monospace"
                     disabled={ordersPage === ordersTotalPages || ordersLoading}
                     onClick={() =>
                       setOrdersPage((prev) =>
@@ -2473,7 +2439,7 @@ const Dash = () => {
                     <tr>
                       <th className="py-3 px-4">Txn ID</th>
                       <th className="py-3 px-4">Customer</th>
-                      <th className="py-3 px-4">Payment Date 📅</th>
+                      <th className="py-3 px-4">Payment Date</th>
                       <th className="py-3 px-4 text-end">Amount</th>
                       <th className="py-3 px-4">Status</th>
                     </tr>
@@ -2517,7 +2483,7 @@ const Dash = () => {
                               {txn.customer_name || "Unnamed"}
                             </span>
                             {txn.customer_phone_number && (
-                              <div className="text-muted text-xxs font-monospace mt-0.5">
+                              <div className="text-muted text-xxs font-monospace mt-1">
                                 {txn.customer_phone_number}
                               </div>
                             )}
@@ -2532,21 +2498,21 @@ const Dash = () => {
                             {txn.status?.toLowerCase() === "captured" || txn.status?.toLowerCase() === "success" ? (
                               <Badge
                                 bg="success-subtle"
-                                className="text-success border border-success-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                className="text-success border border-success-subtle rounded-2 px-2 py-1 text-capitalize"
                               >
                                 {txn.status}
                               </Badge>
                             ) : txn.status?.toLowerCase() === "failed" ? (
                               <Badge
                                 bg="danger-subtle"
-                                className="text-danger border border-danger-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                className="text-danger border border-danger-subtle rounded-2 px-2 py-1 text-capitalize"
                               >
                                 {txn.status}
                               </Badge>
                             ) : (
                               <Badge
                                 bg="warning-subtle"
-                                className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1.5 text-capitalize"
+                                className="text-warning-emphasis border border-warning-subtle rounded-2 px-2 py-1 text-capitalize"
                               >
                                 {txn.status || "Unknown"}
                               </Badge>
@@ -2585,7 +2551,7 @@ const Dash = () => {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    className="rounded-3 px-3 border-light-subtle py-1 fw-semibold font-monospace"
                     disabled={paymentsPage === 1 || paymentsLoading}
                     onClick={() =>
                       setPaymentsPage((prev) => Math.max(prev - 1, 1))
@@ -2599,7 +2565,7 @@ const Dash = () => {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    className="rounded-3 px-3 border-light-subtle py-1.5 fw-semibold font-monospace"
+                    className="rounded-3 px-3 border-light-subtle py-1 fw-semibold font-monospace"
                     disabled={paymentsPage === paymentsTotalPages || paymentsLoading}
                     onClick={() =>
                       setPaymentsPage((prev) =>

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { memo } from "react";
+import { usePathname } from "next/navigation";
 import { Nav } from "react-bootstrap";
 import {
   Speedometer2,
@@ -10,23 +11,34 @@ import {
 } from "react-bootstrap-icons";
 
 function Sidebar({ isOpen, onNavigate }) {
+  const pathname = usePathname();
+
+  const isActive = (path) => {
+    if (path === "/dashboard") {
+      return pathname === "/dashboard";
+    }
+    return pathname === path || pathname.startsWith(path + "/");
+  };
+
   return (
-    <div className="bg-dark h-100">
-      <div className="d-flex align-items-center gap-2 mb-4 py-3 px-2 border-bottom border-secondary">
-        <ShieldLock size={22} className="text-primary" />
+    <div className="sidebar-container h-100">
+      <div className="d-flex align-items-center gap-2 mb-4 py-3 px-3 border-bottom border-secondary border-opacity-25">
+        <ShieldLock size={20} className="text-white" />
+        {isOpen && (
+          <span className="fw-bold text-white small tracking-wider text-uppercase">
+            Aartava Admin
+          </span>
+        )}
       </div>
-      <Nav className="flex-column gap-2 flex-grow-1">
+      <Nav className="flex-column gap-1 flex-grow-1">
         {/* Dashboard Link Layout */}
         <Link
-          href="/dash"
+          href="/dashboard"
           onClick={onNavigate} // Closes mobile panel naturally when link is clicked
-          className={`text-white p-2 d-flex align-items-center gap-3 rounded-2 text-decoration-none ${
-            isOpen
-              ? "justify-content-start w-100 px-3"
-              : "justify-content-center px-0"
-          }`}
+          className={`sidebar-link ${isActive("/dashboard") ? "active" : ""} ${isOpen ? "justify-content-start px-3" : "justify-content-center px-0"
+            }`}
         >
-          <Speedometer2 size={18} />
+          <Speedometer2 size={16} />
           {isOpen && <span className="ms-1">Dashboard</span>}
         </Link>
 
@@ -34,13 +46,10 @@ function Sidebar({ isOpen, onNavigate }) {
         <Link
           href="/user"
           onClick={onNavigate}
-          className={`text-white p-2 d-flex align-items-center gap-3 rounded-2 text-decoration-none ${
-            isOpen
-              ? "justify-content-start w-100 px-3"
-              : "justify-content-center px-0"
-          }`}
+          className={`sidebar-link ${isActive("/user") ? "active" : ""} ${isOpen ? "justify-content-start px-3" : "justify-content-center px-0"
+            }`}
         >
-          <People size={18} />
+          <People size={16} />
           {isOpen && <span className="ms-1">User Directory</span>}
         </Link>
 
@@ -48,13 +57,10 @@ function Sidebar({ isOpen, onNavigate }) {
         <Link
           href="/subscription"
           onClick={onNavigate}
-          className={`text-white p-2 d-flex align-items-center gap-3 rounded-2 text-decoration-none ${
-            isOpen
-              ? "justify-content-start w-100 px-3"
-              : "justify-content-center px-0"
-          }`}
+          className={`sidebar-link ${isActive("/subscription") ? "active" : ""} ${isOpen ? "justify-content-start px-3" : "justify-content-center px-0"
+            }`}
         >
-          <GraphUp size={18} />
+          <GraphUp size={16} />
           {isOpen && <span className="ms-1">Subscription</span>}
         </Link>
       </Nav>

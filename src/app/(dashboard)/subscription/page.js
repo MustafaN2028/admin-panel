@@ -146,21 +146,21 @@ export default function SubscriptionPage() {
                         {sub.status === "active" ? (
                           <Badge
                             bg="success-subtle"
-                            className="text-success border border-success-subtle px-2 py-1.5 rounded-2"
+                            className="text-success border border-success-subtle px-2 py-1 rounded-2"
                           >
                             Active
                           </Badge>
                         ) : sub.status === "inactive" ? (
                           <Badge
                             bg="warning-subtle"
-                            className="text-warning border border-warning-subtle px-2 py-1.5 rounded-2"
+                            className="text-warning border border-warning-subtle px-2 py-1 rounded-2"
                           >
                             Inactive
                           </Badge>
                         ) : (
                           <Badge
                             bg="danger-subtle"
-                            className="text-danger border border-danger-subtle px-2 py-1.5 rounded-2"
+                            className="text-danger border border-danger-subtle px-2 py-1 rounded-2"
                           >
                             {sub.status || "Inactive"}
                           </Badge>
