@@ -56,7 +56,6 @@ export default function EditUserPage() {
   };
   const { selectedUser, loading, error } = useSelector((state) => state.users);
   useEffect(() => {
-    console.log("Inside useEffect", params?.id);
     if (params?.id) {
       dispatch(fetchUserById(params.id));
     }
@@ -98,13 +97,8 @@ export default function EditUserPage() {
       });
     }
   }, [selectedUser?.data]);
-
-  console.log("params:", params);
-  console.log("id:", params?.id);
-  console.log(selectedUser?.data);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data", formData);
     const phoneError = validatePhoneNumber(formData.phone_number);
 
     if (phoneError) {
@@ -542,7 +536,11 @@ export default function EditUserPage() {
                     </div>
                   </div>
                 )}
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
                   Update
                 </button>
               </form>

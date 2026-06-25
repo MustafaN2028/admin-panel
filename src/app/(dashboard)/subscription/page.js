@@ -36,7 +36,6 @@ export default function SubscriptionPage() {
   );
 
   const pagination = subscriptionsList?.pagination;
-  console.log(subscriptionsList);
   useEffect(() => {
     dispatch(fetchSubscriptions(currentPage));
   }, [dispatch, currentPage]);
@@ -174,7 +173,6 @@ export default function SubscriptionPage() {
                             className="btn btn-sm btn-light text-primary border rounded-2 d-flex align-items-center p-2"
                             title="View Transaction Details"
                             onClick={() => {
-                              console.log("Viewing ID:", sub.id);
                               router.push(`/subscription/edit/${sub.id}`);
                             }}
                           >
@@ -184,7 +182,6 @@ export default function SubscriptionPage() {
                             className="btn btn-sm btn-light text-danger border rounded-2 d-flex align-items-center p-2"
                             title="Revoke / Terminate Plan"
                             onClick={() => {
-                              console.log("Viewing ID:", sub.id);
                               setSmShow(true);
                               setSelectedsubs(sub);
                             }}

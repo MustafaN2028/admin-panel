@@ -28,11 +28,9 @@ export default function UserDirectoryPage() {
   // Extract variables out of your user Redux store slice
   const { usersList, loading, error } = useSelector((state) => state.users);
   const pagination = usersList?.pagination;
-  console.log(pagination, currentPage);
   useEffect(() => {
     dispatch(fetchUsers(currentPage));
   }, [dispatch, currentPage]);
-  console.log(usersList);
   // Clean tool to format dates beautifully (e.g., "May 26, 2026")
   const formatDate = (dateString) => {
     if (!dateString) return <span className="text-muted small">N/A</span>;
@@ -153,7 +151,6 @@ export default function UserDirectoryPage() {
                             className="btn btn-sm btn-light text-primary border rounded-2 d-flex align-items-center p-2"
                             title="View User Details"
                             onClick={() => {
-                              // console.log("Viewing User ID:", user.id);
                               router.push(`/user/edit/${user.id}`);
                             }}
                           >

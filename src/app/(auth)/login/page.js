@@ -38,13 +38,11 @@ const LoginPage = () => {
   }, [dispatch]);
   // Redirect the user automatically if Redux confirms they are logged in
   useEffect(() => {
-    console.log("Current Auth State Status:", isAuthenticated);
     if (isAuthenticated) {
       router.push("/dashboard");
       // router.refresh();
     }
   }, [isAuthenticated, router]);
-  console.log(isAuthenticated, "isssssssss");
   // Logic Handler for Mobile Inputs
   const handleMobileChange = (val) => {
     // Strip out spaces or dashes if the user types them formatted

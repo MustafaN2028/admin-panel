@@ -185,7 +185,6 @@ const Dash = () => {
       fetchDashboardOverview();
     }
   }, [activeTab, fetchDashboardOverview]);
-  console.log(overviewData, "llll");
   // Tab 2 Date values
   const [usersSignupStart, setUsersSignupStart] = useState("");
   const [usersSignupEnd, setUsersSignupEnd] = useState("");
@@ -280,7 +279,6 @@ const Dash = () => {
       fetchDashboardUsers();
     }
   }, [activeTab, fetchDashboardUsers]);
-  console.log(usersData, "UU");
 
   // Tab 4 Date & Status values
   const [ordersPlacedStart, setOrdersPlacedStart] = useState("");

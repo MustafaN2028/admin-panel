@@ -30,7 +30,6 @@ export default function EditSubscriptionPage() {
     (state) => state.subscriptions,
   );
   useEffect(() => {
-    console.log("Inside useEffect", params?.id);
     if (params?.id) {
       dispatch(fetchSubscriberById(params.id));
     }
@@ -53,12 +52,8 @@ export default function EditSubscriptionPage() {
     }
   }, [selectedsubscription]);
 
-  console.log("params:", params);
-  console.log("id:", params?.id);
-  console.log(selectedsubscription);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data", formData);
     try {
       await dispatch(
         updateSubscription({
