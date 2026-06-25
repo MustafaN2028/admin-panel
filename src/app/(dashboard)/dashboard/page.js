@@ -89,7 +89,8 @@ const Dash = () => {
       if (overviewStart) params.append("start_date", overviewStart);
       if (overviewEnd) params.append("end_date", overviewEnd);
       const queryStr = params.toString();
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
       const headers = {
         "Content-Type": "application/json",
@@ -99,13 +100,18 @@ const Dash = () => {
       // Fetch Overview Metrics
       const fetchOverview = async () => {
         try {
-          const res = await fetch(`${baseUrl}/api/admin/dashboard/overview?${queryStr}`, {
-            method: "GET",
-            headers,
-          });
+          const res = await fetch(
+            `${baseUrl}/api/admin/dashboard/overview?${queryStr}`,
+            {
+              method: "GET",
+              headers,
+            },
+          );
           const data = await res.json();
           if (!res.ok) {
-            throw new Error(data.message || "Failed to fetch overview metrics.");
+            throw new Error(
+              data.message || "Failed to fetch overview metrics.",
+            );
           }
           setOverviewData(data);
         } catch (err) {
@@ -119,10 +125,13 @@ const Dash = () => {
       // Fetch Revenue Chart
       const fetchRevenueChart = async () => {
         try {
-          const res = await fetch(`${baseUrl}/api/admin/dashboard/revenue-chart?${queryStr}`, {
-            method: "GET",
-            headers,
-          });
+          const res = await fetch(
+            `${baseUrl}/api/admin/dashboard/revenue-chart?${queryStr}`,
+            {
+              method: "GET",
+              headers,
+            },
+          );
           const data = await res.json();
           if (!res.ok) {
             throw new Error(data.message || "Failed to fetch revenue chart.");
@@ -139,13 +148,18 @@ const Dash = () => {
       // Fetch Trend Chart
       const fetchTrendChart = async () => {
         try {
-          const res = await fetch(`${baseUrl}/api/admin/dashboard/users-revenue-trend?${queryStr}`, {
-            method: "GET",
-            headers,
-          });
+          const res = await fetch(
+            `${baseUrl}/api/admin/dashboard/users-revenue-trend?${queryStr}`,
+            {
+              method: "GET",
+              headers,
+            },
+          );
           const data = await res.json();
           if (!res.ok) {
-            throw new Error(data.message || "Failed to fetch users & revenue trend.");
+            throw new Error(
+              data.message || "Failed to fetch users & revenue trend.",
+            );
           }
           setTrendChartData(data || []);
         } catch (err) {
@@ -156,7 +170,11 @@ const Dash = () => {
         }
       };
 
-      await Promise.all([fetchOverview(), fetchRevenueChart(), fetchTrendChart()]);
+      await Promise.all([
+        fetchOverview(),
+        fetchRevenueChart(),
+        fetchTrendChart(),
+      ]);
     } catch (globalErr) {
       console.error("Global fetch error:", globalErr);
     }
@@ -292,10 +310,13 @@ const Dash = () => {
       const token =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const params = new URLSearchParams();
-      if (ordersPlacedStart) params.append("placed_start_date", ordersPlacedStart);
+      if (ordersPlacedStart)
+        params.append("placed_start_date", ordersPlacedStart);
       if (ordersPlacedEnd) params.append("placed_end_date", ordersPlacedEnd);
-      if (ordersDeliveryStart) params.append("delivery_start_date", ordersDeliveryStart);
-      if (ordersDeliveryEnd) params.append("delivery_end_date", ordersDeliveryEnd);
+      if (ordersDeliveryStart)
+        params.append("delivery_start_date", ordersDeliveryStart);
+      if (ordersDeliveryEnd)
+        params.append("delivery_end_date", ordersDeliveryEnd);
       if (ordersStatus) params.append("status", ordersStatus);
       params.append("page", ordersPage);
       params.append("limit", ordersLimit);
@@ -321,7 +342,7 @@ const Dash = () => {
           setOrdersPeakDays(
             Array.isArray(data.summary.peak_order_days)
               ? data.summary.peak_order_days.join(" & ")
-              : data.summary.peak_order_days || "N/A"
+              : data.summary.peak_order_days || "N/A",
           );
           setOrdersAvgDelivery(data.summary.average_delivery_time_days ?? 0);
           setOrdersFulfillmentRatio(data.summary.fulfillment_target_ratio ?? 0);
@@ -331,7 +352,9 @@ const Dash = () => {
           setOrdersTotalCount(data.pagination.total || 0);
         }
       } else {
-        throw new Error(data.message || "Request returned unsuccessful status.");
+        throw new Error(
+          data.message || "Request returned unsuccessful status.",
+        );
       }
     } catch (err) {
       console.error("fetchDashboardOrders error:", err);
@@ -419,7 +442,9 @@ const Dash = () => {
         }
         if (data.renewal_analytics) {
           setSubRenewalRate(data.renewal_analytics.renewal_rate ?? 0);
-          setSubAvgLifecycle(data.renewal_analytics.average_plan_lifecycle_days ?? 0);
+          setSubAvgLifecycle(
+            data.renewal_analytics.average_plan_lifecycle_days ?? 0,
+          );
           setSubChurnRate(data.renewal_analytics.churn_rate ?? 0);
         }
         if (data.daily_subscription_growth) {
@@ -427,7 +452,20 @@ const Dash = () => {
             if (!dateStr) return "";
             const parts = dateStr.split("-");
             if (parts.length < 3) return dateStr;
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const months = [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ];
             const monthIdx = parseInt(parts[1], 10) - 1;
             const day = parseInt(parts[2], 10);
             return `${months[monthIdx] || parts[1]} ${day}`;
@@ -440,7 +478,9 @@ const Dash = () => {
           setSubGrowthData(mapped);
         }
       } else {
-        throw new Error(data.message || "Request returned unsuccessful status.");
+        throw new Error(
+          data.message || "Request returned unsuccessful status.",
+        );
       }
     } catch (err) {
       console.error("fetchDashboardSubscriptions error:", err);
@@ -507,7 +547,9 @@ const Dash = () => {
           setPaymentsTotalCount(data.pagination.total || 0);
         }
       } else {
-        throw new Error(data.message || "Request returned unsuccessful status.");
+        throw new Error(
+          data.message || "Request returned unsuccessful status.",
+        );
       }
     } catch (err) {
       console.error("fetchDashboardPayments error:", err);
@@ -527,11 +569,7 @@ const Dash = () => {
   // Reset page to 1 on filter changes
   useEffect(() => {
     setPaymentsPage(1);
-  }, [
-    paymentsStart,
-    paymentsEnd,
-    paymentsStatus,
-  ]);
+  }, [paymentsStart, paymentsEnd, paymentsStatus]);
 
   useEffect(() => {
     if (activeTab === "payments") {
@@ -549,11 +587,21 @@ const Dash = () => {
   }, [subGrowthData]);
 
   const subSignupPath = useMemo(() => {
-    return subChartPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.ySignup.toFixed(1)}`).join(" ");
+    return subChartPoints
+      .map(
+        (p, i) =>
+          `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.ySignup.toFixed(1)}`,
+      )
+      .join(" ");
   }, [subChartPoints]);
 
   const subCancelPath = useMemo(() => {
-    return subChartPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yCancel.toFixed(1)}`).join(" ");
+    return subChartPoints
+      .map(
+        (p, i) =>
+          `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yCancel.toFixed(1)}`,
+      )
+      .join(" ");
   }, [subChartPoints]);
 
   // Hardcoded date values for the designs
@@ -593,7 +641,10 @@ const Dash = () => {
       const dateObj = new Date(item.date);
       const label = isNaN(dateObj.getTime())
         ? item.date
-        : dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        : dateObj.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
       return {
         label,
         revenue: item.revenue || 0,
@@ -619,7 +670,10 @@ const Dash = () => {
       const dateObj = new Date(item.date);
       const label = isNaN(dateObj.getTime())
         ? item.date
-        : dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        : dateObj.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
       return {
         label,
         users: item.new_users || 0,
@@ -630,7 +684,10 @@ const Dash = () => {
 
   const revenueChartPoints = useMemo(() => {
     if (overviewRevenueBreakdown.length === 0) return [];
-    const maxVal = Math.max(...overviewRevenueBreakdown.map((d) => d.revenue), 1000);
+    const maxVal = Math.max(
+      ...overviewRevenueBreakdown.map((d) => d.revenue),
+      1000,
+    );
     const total = overviewRevenueBreakdown.length;
     return overviewRevenueBreakdown.map((item, idx) => {
       const x = total > 1 ? 45 + (idx / (total - 1)) * 435 : 262.5;
@@ -643,13 +700,23 @@ const Dash = () => {
     if (revenueChartPoints.length === 0) return "";
     const firstPoint = revenueChartPoints[0];
     const lastPoint = revenueChartPoints[revenueChartPoints.length - 1];
-    const pathD = revenueChartPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+    const pathD = revenueChartPoints
+      .map(
+        (p, idx) =>
+          `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`,
+      )
+      .join(" ");
     return `${pathD} L ${lastPoint.x.toFixed(1)} 170 L ${firstPoint.x.toFixed(1)} 170 Z`;
   }, [revenueChartPoints]);
 
   const revenueStrokePath = useMemo(() => {
     if (revenueChartPoints.length === 0) return "";
-    return revenueChartPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+    return revenueChartPoints
+      .map(
+        (p, idx) =>
+          `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`,
+      )
+      .join(" ");
   }, [revenueChartPoints]);
 
   const trendChartPoints = useMemo(() => {
@@ -661,18 +728,35 @@ const Dash = () => {
       const x = total > 1 ? 45 + (idx / (total - 1)) * 435 : 262.5;
       const yUser = 170 - (item.users / maxUsers) * 150;
       const yRev = 170 - (item.revenue / maxRevenue) * 150;
-      return { x, yUser, yRev, users: item.users, revenue: item.revenue, lbl: item.label };
+      return {
+        x,
+        yUser,
+        yRev,
+        users: item.users,
+        revenue: item.revenue,
+        lbl: item.label,
+      };
     });
   }, [trendData]);
 
   const trendUsersPath = useMemo(() => {
     if (trendChartPoints.length === 0) return "";
-    return trendChartPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yUser.toFixed(1)}`).join(" ");
+    return trendChartPoints
+      .map(
+        (p, idx) =>
+          `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yUser.toFixed(1)}`,
+      )
+      .join(" ");
   }, [trendChartPoints]);
 
   const trendRevenuePath = useMemo(() => {
     if (trendChartPoints.length === 0) return "";
-    return trendChartPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yRev.toFixed(1)}`).join(" ");
+    return trendChartPoints
+      .map(
+        (p, idx) =>
+          `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yRev.toFixed(1)}`,
+      )
+      .join(" ");
   }, [trendChartPoints]);
 
   const labelIndices = useMemo(() => {
@@ -689,12 +773,6 @@ const Dash = () => {
 
   // Mock data cleaned - replaced with live API states
 
-
-
-
-
-
-
   return (
     <div className="container-fluid py-3 px-md-4 bg-light min-vh-100">
       {/* 1. TOP TITLE HEADER */}
@@ -709,11 +787,27 @@ const Dash = () => {
         <Card.Body className="p-2 bg-white">
           <div className="tab-scroll-container d-flex justify-content-start justify-content-md-around align-items-center w-100 gap-1">
             {[
-              { id: "overview", label: "Overview Dashboard", icon: <ClipboardData size={15} /> },
-              { id: "users", label: "User Management", icon: <People size={15} /> },
-              { id: "subscriptions", label: "Subscriptions Hub", icon: <CreditCard size={15} /> },
-              { id: "orders", label: "Orders & Delivery", icon: <CartCheck size={15} /> },
-              { id: "payments", label: "Payments Ledger", icon: <CashStack size={15} /> },
+              {
+                id: "overview",
+                label: "Overview Dashboard",
+                icon: <ClipboardData size={15} />,
+              },
+              {
+                id: "users",
+                label: "User Management",
+                icon: <People size={15} />,
+              },
+              {
+                id: "subscriptions",
+                label: "Subscriptions Hub",
+                icon: <CreditCard size={15} />,
+              },
+              // { id: "orders", label: "Orders & Delivery", icon: <CartCheck size={15} /> },
+              {
+                id: "payments",
+                label: "Payments Ledger",
+                icon: <CashStack size={15} />,
+              },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -824,14 +918,15 @@ const Dash = () => {
                     ) : (
                       <>
                         <span
-                          className={`small fw-bold d-flex align-items-center gap-1 ${(overviewData?.new_users_change_percentage ?? 0) >=
+                          className={`small fw-bold d-flex align-items-center gap-1 ${
+                            (overviewData?.new_users_change_percentage ?? 0) >=
                             0
-                            ? "text-success"
-                            : "text-danger"
-                            }`}
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
                         >
                           {(overviewData?.new_users_change_percentage ?? 0) >=
-                            0 ? (
+                          0 ? (
                             <ArrowUpRight size={12} />
                           ) : (
                             <ArrowDownRight size={12} />
@@ -874,10 +969,11 @@ const Dash = () => {
                     ) : (
                       <>
                         <span
-                          className={`small fw-bold d-flex align-items-center gap-1 ${(overviewData?.dau_change_percentage ?? 0) >= 0
-                            ? "text-success"
-                            : "text-danger"
-                            }`}
+                          className={`small fw-bold d-flex align-items-center gap-1 ${
+                            (overviewData?.dau_change_percentage ?? 0) >= 0
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
                         >
                           {(overviewData?.dau_change_percentage ?? 0) >= 0 ? (
                             <ArrowUpRight size={12} />
@@ -964,13 +1060,14 @@ const Dash = () => {
                     ) : (
                       <>
                         <span
-                          className={`small fw-bold d-flex align-items-center gap-1 ${(overviewData?.income_change_percentage ?? 0) >= 0
-                            ? "text-success"
-                            : "text-danger"
-                            }`}
+                          className={`small fw-bold d-flex align-items-center gap-1 ${
+                            (overviewData?.income_change_percentage ?? 0) >= 0
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
                         >
                           {(overviewData?.income_change_percentage ?? 0) >=
-                            0 ? (
+                          0 ? (
                             <ArrowUpRight size={12} />
                           ) : (
                             <ArrowDownRight size={12} />
@@ -1078,9 +1175,7 @@ const Dash = () => {
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center gap-2">
                     <CartCheck className="text-warning" size={20} />
-                    <h5 className="m-0 fw-bold text-dark">
-                      Orders Overview
-                    </h5>
+                    <h5 className="m-0 fw-bold text-dark">Orders Overview</h5>
                   </div>
                   <span className="text-muted small">
                     Total:{" "}
@@ -1135,9 +1230,7 @@ const Dash = () => {
                           size={20}
                           className="text-success mb-2"
                         />
-                        <h6 className="mb-1 text-secondary small">
-                          Delivered
-                        </h6>
+                        <h6 className="mb-1 text-secondary small">Delivered</h6>
                         <h5 className="fw-bold text-dark mb-0 font-monospace">
                           {overviewLoading
                             ? "..."
@@ -1204,14 +1297,29 @@ const Dash = () => {
                 </Card.Header>
                 <Card.Body className="p-4 position-relative">
                   {revenueChartLoading ? (
-                    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "220px" }}>
-                      <ProgressBar animated now={100} label="Loading revenue data..." className="w-75" />
+                    <div
+                      className="d-flex justify-content-center align-items-center"
+                      style={{ minHeight: "220px" }}
+                    >
+                      <ProgressBar
+                        animated
+                        now={100}
+                        label="Loading revenue data..."
+                        className="w-75"
+                      />
                     </div>
                   ) : revenueChartError ? (
-                    <div className="d-flex justify-content-center align-items-center text-danger text-center px-3" style={{ minHeight: "220px" }}>
+                    <div
+                      className="d-flex justify-content-center align-items-center text-danger text-center px-3"
+                      style={{ minHeight: "220px" }}
+                    >
                       <div>
-                        <div className="fw-bold">Unable to load revenue chart</div>
-                        <div className="small text-muted mt-1">{revenueChartError}</div>
+                        <div className="fw-bold">
+                          Unable to load revenue chart
+                        </div>
+                        <div className="small text-muted mt-1">
+                          {revenueChartError}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -1261,10 +1369,7 @@ const Dash = () => {
 
                         {/* Area Path */}
                         {revenueAreaPath && (
-                          <path
-                            d={revenueAreaPath}
-                            fill="url(#revGrad)"
-                          />
+                          <path d={revenueAreaPath} fill="url(#revGrad)" />
                         )}
 
                         {/* Stroke Line */}
@@ -1317,25 +1422,31 @@ const Dash = () => {
                       </svg>
 
                       {/* Tooltip Overlay */}
-                      {hoveredIdx !== null && revenueChartPoints[hoveredIdx] && (
-                        <div
-                          className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
-                          style={{
-                            left: `${(revenueChartPoints[hoveredIdx].x / 500) * 100}%`,
-                            top: "30px",
-                            transform: hoveredIdx >= revenueChartPoints.length / 2 ? "translateX(-100%)" : "translateX(10px)",
-                            zIndex: 10,
-                            pointerEvents: "none",
-                          }}
-                        >
-                          <div className="text-secondary small fw-bold">
-                            {revenueChartPoints[hoveredIdx].lbl}
+                      {hoveredIdx !== null &&
+                        revenueChartPoints[hoveredIdx] && (
+                          <div
+                            className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
+                            style={{
+                              left: `${(revenueChartPoints[hoveredIdx].x / 500) * 100}%`,
+                              top: "30px",
+                              transform:
+                                hoveredIdx >= revenueChartPoints.length / 2
+                                  ? "translateX(-100%)"
+                                  : "translateX(10px)",
+                              zIndex: 10,
+                              pointerEvents: "none",
+                            }}
+                          >
+                            <div className="text-secondary small fw-bold">
+                              {revenueChartPoints[hoveredIdx].lbl}
+                            </div>
+                            <div className="fw-bold font-monospace text-emerald">
+                              {formatCurrency(
+                                revenueChartPoints[hoveredIdx].val,
+                              )}
+                            </div>
                           </div>
-                          <div className="fw-bold font-monospace text-emerald">
-                            {formatCurrency(revenueChartPoints[hoveredIdx].val)}
-                          </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   )}
                 </Card.Body>
@@ -1365,14 +1476,29 @@ const Dash = () => {
                 </Card.Header>
                 <Card.Body className="p-4 position-relative">
                   {trendChartLoading ? (
-                    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "220px" }}>
-                      <ProgressBar animated now={100} label="Loading trend data..." className="w-75" />
+                    <div
+                      className="d-flex justify-content-center align-items-center"
+                      style={{ minHeight: "220px" }}
+                    >
+                      <ProgressBar
+                        animated
+                        now={100}
+                        label="Loading trend data..."
+                        className="w-75"
+                      />
                     </div>
                   ) : trendChartError ? (
-                    <div className="d-flex justify-content-center align-items-center text-danger text-center px-3" style={{ minHeight: "220px" }}>
+                    <div
+                      className="d-flex justify-content-center align-items-center text-danger text-center px-3"
+                      style={{ minHeight: "220px" }}
+                    >
                       <div>
-                        <div className="fw-bold">Unable to load trend chart</div>
-                        <div className="small text-muted mt-1">{trendChartError}</div>
+                        <div className="fw-bold">
+                          Unable to load trend chart
+                        </div>
+                        <div className="small text-muted mt-1">
+                          {trendChartError}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -1470,31 +1596,37 @@ const Dash = () => {
                       </svg>
 
                       {/* Trend Tooltip */}
-                      {hoveredTrendIdx !== null && trendChartPoints[hoveredTrendIdx] && (
-                        <div
-                          className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
-                          style={{
-                            left: `${(trendChartPoints[hoveredTrendIdx].x / 500) * 100}%`,
-                            top: "20px",
-                            transform: hoveredTrendIdx >= trendChartPoints.length / 2 ? "translateX(-100%)" : "translateX(10px)",
-                            zIndex: 10,
-                            pointerEvents: "none",
-                          }}
-                        >
-                          <div className="text-secondary small fw-bold">
-                            {trendChartPoints[hoveredTrendIdx].lbl}
+                      {hoveredTrendIdx !== null &&
+                        trendChartPoints[hoveredTrendIdx] && (
+                          <div
+                            className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
+                            style={{
+                              left: `${(trendChartPoints[hoveredTrendIdx].x / 500) * 100}%`,
+                              top: "20px",
+                              transform:
+                                hoveredTrendIdx >= trendChartPoints.length / 2
+                                  ? "translateX(-100%)"
+                                  : "translateX(10px)",
+                              zIndex: 10,
+                              pointerEvents: "none",
+                            }}
+                          >
+                            <div className="text-secondary small fw-bold">
+                              {trendChartPoints[hoveredTrendIdx].lbl}
+                            </div>
+                            <div className="text-primary small font-monospace">
+                              👥 New Users:{" "}
+                              {trendChartPoints[hoveredTrendIdx].users}
+                            </div>
+                            <div className="text-emerald small font-monospace">
+                              💰 Income:{" "}
+                              {formatCurrency(
+                                trendChartPoints[hoveredTrendIdx].revenue *
+                                  1000,
+                              )}
+                            </div>
                           </div>
-                          <div className="text-primary small font-monospace">
-                            👥 New Users: {trendChartPoints[hoveredTrendIdx].users}
-                          </div>
-                          <div className="text-emerald small font-monospace">
-                            💰 Income:{" "}
-                            {formatCurrency(
-                              trendChartPoints[hoveredTrendIdx].revenue * 1000,
-                            )}
-                          </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   )}
                 </Card.Body>
@@ -1667,7 +1799,7 @@ const Dash = () => {
                           </td>
                           <td className="px-4">
                             {user.subscription_status?.toLowerCase() ===
-                              "active" ? (
+                            "active" ? (
                               <Badge
                                 bg="success-subtle"
                                 className="text-success border border-success-subtle rounded-2 px-2 py-1"
@@ -1844,15 +1976,27 @@ const Dash = () => {
                     style={{ minHeight: "220px" }}
                   >
                     {subLoading ? (
-                      <div className="d-flex align-items-center justify-content-center" style={{ height: "200px" }}>
-                        <div className="spinner-border text-primary" role="status" />
+                      <div
+                        className="d-flex align-items-center justify-content-center"
+                        style={{ height: "200px" }}
+                      >
+                        <div
+                          className="spinner-border text-primary"
+                          role="status"
+                        />
                       </div>
                     ) : subError ? (
-                      <div className="d-flex align-items-center justify-content-center text-danger fw-semibold" style={{ height: "200px" }}>
+                      <div
+                        className="d-flex align-items-center justify-content-center text-danger fw-semibold"
+                        style={{ height: "200px" }}
+                      >
                         ⚠ Error: {subError}
                       </div>
                     ) : subGrowthData.length === 0 ? (
-                      <div className="d-flex align-items-center justify-content-center text-muted" style={{ height: "200px" }}>
+                      <div
+                        className="d-flex align-items-center justify-content-center text-muted"
+                        style={{ height: "200px" }}
+                      >
                         No subscription growth data available.
                       </div>
                     ) : (
@@ -1910,26 +2054,28 @@ const Dash = () => {
                             />
                           ))}
                         </svg>
-                        {hoveredSubIdx !== null && subGrowthData[hoveredSubIdx] && (
-                          <div
-                            className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
-                            style={{
-                              left: `${subGrowthData[hoveredSubIdx].label === "Jun 16" ? 15 : hoveredSubIdx * 15 + 10}%`,
-                              top: "20px",
-                              zIndex: 10,
-                            }}
-                          >
-                            <div className="text-secondary small fw-bold">
-                              {subGrowthData[hoveredSubIdx].label}
+                        {hoveredSubIdx !== null &&
+                          subGrowthData[hoveredSubIdx] && (
+                            <div
+                              className="chart-tooltip shadow border rounded-3 p-2 bg-dark text-white position-absolute"
+                              style={{
+                                left: `${subGrowthData[hoveredSubIdx].label === "Jun 16" ? 15 : hoveredSubIdx * 15 + 10}%`,
+                                top: "20px",
+                                zIndex: 10,
+                              }}
+                            >
+                              <div className="text-secondary small fw-bold">
+                                {subGrowthData[hoveredSubIdx].label}
+                              </div>
+                              <div className="text-indigo small font-monospace">
+                                Signups: +{subGrowthData[hoveredSubIdx].growth}
+                              </div>
+                              <div className="text-danger small font-monospace">
+                                Cancelled: -
+                                {subGrowthData[hoveredSubIdx].cancellations}
+                              </div>
                             </div>
-                            <div className="text-indigo small font-monospace">
-                              Signups: +{subGrowthData[hoveredSubIdx].growth}
-                            </div>
-                            <div className="text-danger small font-monospace">
-                              Cancelled: -{subGrowthData[hoveredSubIdx].cancellations}
-                            </div>
-                          </div>
-                        )}
+                          )}
                       </>
                     )}
                   </div>
@@ -1941,9 +2087,7 @@ const Dash = () => {
             <Col lg={5}>
               <Card className="border-0 shadow-sm rounded-4 h-100 overflow-hidden">
                 <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
-                  <h5 className="m-0 fw-bold text-dark">
-                    Renewal Rate
-                  </h5>
+                  <h5 className="m-0 fw-bold text-dark">Renewal Rate</h5>
                   <span className="text-muted small">
                     Subscription retention analytics
                   </span>
@@ -1974,7 +2118,10 @@ const Dash = () => {
                         stroke="#10b981"
                         strokeWidth="9"
                         strokeDasharray="251.2"
-                        strokeDashoffset={251.2 - (251.2 * (subLoading ? 84 : subRenewalRate)) / 100}
+                        strokeDashoffset={
+                          251.2 -
+                          (251.2 * (subLoading ? 84 : subRenewalRate)) / 100
+                        }
                         strokeLinecap="round"
                         transform="rotate(-90 50 50)"
                       />
@@ -2107,9 +2254,7 @@ const Dash = () => {
             </Col>
             <Col xs={12} md={4}>
               <div className="bg-white p-3 rounded-4 border shadow-sm text-center">
-                <h6 className="text-muted small mb-1">
-                  Average Delivery Time
-                </h6>
+                <h6 className="text-muted small mb-1">Average Delivery Time</h6>
                 <h5 className="fw-bold text-success mb-0">
                   {ordersLoading ? "..." : `${ordersAvgDelivery} Days`}{" "}
                   <span className="text-muted text-xxs font-normal">
@@ -2124,7 +2269,9 @@ const Dash = () => {
                   Fulfillment Target Ratio
                 </h6>
                 <h5 className="fw-bold text-dark mb-0">
-                  {ordersLoading ? "..." : `${ordersFulfillmentRatio}% achieved`}
+                  {ordersLoading
+                    ? "..."
+                    : `${ordersFulfillmentRatio}% achieved`}
                 </h5>
               </div>
             </Col>
@@ -2184,7 +2331,8 @@ const Dash = () => {
                       </tr>
                     ) : (
                       ordersData.map((order, idx) => {
-                        const normalizedStatus = order.status?.toLowerCase().replace(/_/g, " ") || "";
+                        const normalizedStatus =
+                          order.status?.toLowerCase().replace(/_/g, " ") || "";
                         return (
                           <tr key={order.id || idx}>
                             <td className="px-4 fw-bold font-monospace">
@@ -2321,7 +2469,9 @@ const Dash = () => {
           {/* A. Date & Status Filters */}
           <Card className="border-0 shadow-sm rounded-4 mb-4">
             <Card.Body className="p-4 bg-white">
-              <h6 className="fw-bold text-dark mb-3">Payments Ledger Filters</h6>
+              <h6 className="fw-bold text-dark mb-3">
+                Payments Ledger Filters
+              </h6>
               <Row className="g-3">
                 <Col sm={12} md={6}>
                   <Form.Group>
@@ -2495,7 +2645,8 @@ const Dash = () => {
                             {formatCurrency(txn.amount)}
                           </td>
                           <td className="px-4">
-                            {txn.status?.toLowerCase() === "captured" || txn.status?.toLowerCase() === "success" ? (
+                            {txn.status?.toLowerCase() === "captured" ||
+                            txn.status?.toLowerCase() === "success" ? (
                               <Badge
                                 bg="success-subtle"
                                 className="text-success border border-success-subtle rounded-2 px-2 py-1 text-capitalize"
@@ -2566,7 +2717,9 @@ const Dash = () => {
                     variant="outline-secondary"
                     size="sm"
                     className="rounded-3 px-3 border-light-subtle py-1 fw-semibold font-monospace"
-                    disabled={paymentsPage === paymentsTotalPages || paymentsLoading}
+                    disabled={
+                      paymentsPage === paymentsTotalPages || paymentsLoading
+                    }
                     onClick={() =>
                       setPaymentsPage((prev) =>
                         Math.min(prev + 1, paymentsTotalPages),

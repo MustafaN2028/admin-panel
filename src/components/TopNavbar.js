@@ -23,18 +23,16 @@ function TopNavbar({ onToggleSidebar, isSidebarOpen }) {
         <Button
           variant="light"
           onClick={onToggleSidebar}
-          className="btn-outline-secondary border p-0 d-flex align-items-center justify-content-center rounded-2"
-          style={{ width: "36px", height: "36px" }}
+          className="btn-outline-secondary border p-2 d-flex align-items-center justify-content-center rounded-2"
           title={
             isSidebarOpen ? "Hide Navigation Menu" : "Show Navigation Menu"
           }
         >
-          <List size={24} style={{ width: "24px", height: "24px" }} />
+          <List size={24} style={{ width: "20px", height: "20px" }} />
         </Button>
         <Button
           variant="light"
           className="btn-outline-secondary border p-0 d-flex align-items-center justify-content-center rounded-2 text-danger"
-          style={{ width: "36px", height: "36px" }}
           title="Sign Out"
           onClick={() => {
             dispatch(logout());
