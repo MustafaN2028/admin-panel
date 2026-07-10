@@ -7,6 +7,7 @@ import {
   Speedometer2,
   People,
   GraphUp,
+  Tags,
   ShieldLock,
 } from "react-bootstrap-icons";
 
@@ -54,7 +55,7 @@ function Sidebar({ isOpen, onNavigate }) {
         </Link>
 
         {/* Subscription Link Layout */}
-        <Link
+        {/* <Link
           href="/subscription"
           onClick={onNavigate}
           className={`sidebar-link ${isActive("/subscription") ? "active" : ""} ${isOpen ? "justify-content-start px-3" : "justify-content-center px-0"
@@ -62,6 +63,17 @@ function Sidebar({ isOpen, onNavigate }) {
         >
           <GraphUp size={16} />
           {isOpen && <span className="ms-1">Subscription</span>}
+        </Link> */}
+
+        {/* Subscription Plans Link Layout */}
+        <Link
+          href="/subscription-plans"
+          onClick={onNavigate}
+          className={`sidebar-link ${isActive("/subscription-plans") ? "active" : ""} ${isOpen ? "justify-content-start px-3" : "justify-content-center px-0"
+            }`}
+        >
+          <Tags size={16} />
+          {isOpen && <span className="ms-1">Subscription Plans</span>}
         </Link>
       </Nav>
     </div>
